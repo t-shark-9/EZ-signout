@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EZ Sign-Out System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .container {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 50px;
+    }
+    .option {
+      width: 200px;
+      height: 200px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      text-decoration: none;
+    }
+    .option:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .student {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .teacher {
+      background-color: #2196F3;
+      color: white;
+    }
+    .icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+    .label {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .description {
+      margin-top: 5px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>EZ Sign-Out System</h1>
+  
+  <div class="container">
+    <a href="student-view.html" class="option student">
+      <div class="icon">👨‍🎓</div>
+      <div class="label">Student View</div>
+      <div class="description">Sign in/out and manage your calendar</div>
+    </a>
+    
+    <a href="teacher-view.html" class="option teacher">
+      <div class="icon">👨‍🏫</div>
+      <div class="label">Teacher View</div>
+      <div class="description">Monitor student activity</div>
+    </a>
+  </div>
+</body>
+</html>
