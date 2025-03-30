@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign-Out Website</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .container {
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .user-name-clickable {
+      cursor: pointer;
+      text-decoration: underline;
+      color: #1a73e8;
+    }
+    .return-button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: #4CAF50;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      z-index: 100;
+    }
+    .return-button:hover {
+      background-color: #45a049;
+    }
+    .square {
+      display: inline-block;
+      width: 150px;
+      height: 150px;
+      margin: 10px;
+      background-color: lightblue;
+      color: black;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      cursor: pointer;
+      border: 2px solid gray;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+    .square:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    }
+    .square.disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .gray {
+      background-color: gray;
+      color: white;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background-color: #f8f8f8;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background-color: #e8e8e8;
+    }
+    button.active {
+      background-color: #4CAF50;
+      color: white;
+    }
+    button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #calendar-list {
+      list-style-type: none;
+      padding: 0;
+    }
+    #calendar-list li {
+      padding: 10px;
+      margin-bottom: 5px;
+      border-left: 4px solid #4CAF50;
+      background-color: #f9f9f9;
+    }
+    #calendar-list li.sign-out {
+      border-left-color: #f44336;
+    }
+    #calendar-list li.sign-in {
+      border-left-color: #4CAF50;
+    }
+    #login-form {
+      display: flex;
+      flex-direction: column;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+    #login-form input, #login-form button {
+      margin: 10px 0;
+      padding: 10px;
+    }
+    #mode-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #333;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .option-container {
+      margin-top: 20px;
+      background-color: #f0f0f0;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .view-toggle {
+      display: flex;
+      margin-bottom: 15px;
+    }
+    .view-toggle button {
+      border-radius: 0;
+      margin: 0;
+    }
+    .view-toggle button:first-child {
+      border-top-left-radius: 4px;
+      border-bottom-left-radius: 4px;
+    }
+    .view-toggle button:last-child {
+      border-top-right-radius: 4px;
+      border-bottom-right-radius: 4px;
+    }
+    #my-calendar-content {
+      min-height: 200px;
+    }
+    .current-date {
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .date-time-picker {
+      margin: 15px 0;
+    }
+    .monthly-calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-top: 15px;
+    }
+    .day-header {
+      text-align: center;
+      font-weight: bold;
+      padding: 5px;
+      background-color: #f0f0f0;
+    }
+    .calendar-day {
+      border: 1px solid #ddd;
+      padding: 5px;
+      min-height: 40px;
+      text-align: right;
+      cursor: pointer;
+      position: relative;
+    }
+    .calendar-day:hover {
+      background-color: #f5f5f5;
+    }
+    .calendar-day.other-month {
+      background-color: #f9f9f9;
+      color: #aaa;
+    }
+    .calendar-day.today {
+      background-color: #e6f7ff;
+      border: 2px solid #1890ff;
+    }
+    .calendar-day.has-events {
+      font-weight: bold;
+    }
+    .calendar-day.has-events::after {
+      content: "";
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #f44336;
+    }
+    .day-number {
+      font-size: 12px;
+    }
+    .action-buttons {
+      margin-top: 10px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .record-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .record-item button {
+      padding: 2px 5px;
+      font-size: 12px;
+    }
+    .user-profile-options {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .name-change {
+      margin-top: 15px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="mode-toggle" onclick="toggleMode()">Switch Mode</div>
+
+  <!-- Login Form -->
+  <div id="login-container" class="container">
+    <h1>Sign-Out Website</h1>
+    <div id="login-form">
+      <h2>Please enter your name to continue</h2>
+      <input type="text" id="name-input" placeholder="Your Name">
+      <button onclick="login()">Continue</button>
+    </div>
+  </div>
+
+  <!-- Mode 1: Teacher View -->
+  <div id="mode1" class="container hidden">
+    <h1>Teacher Calendar</h1>
+    <div class="view-toggle">
+      <button id="admin-daily-view-btn" onclick="setAdminView('daily')" class="active">Daily View</button>
+      <button id="admin-monthly-view-btn" onclick="setAdminView('monthly')">Monthly View</button>
+    </div>
+    
+    <!-- Admin Daily View -->
+    <div id="admin-daily-view">
+      <div class="current-date" id="admin-current-date"></div>
+      <div class="calendar-nav">
+        <button onclick="changeAdminDate(-1)">Previous Day</button>
+        <button onclick="changeAdminDate(0)">Today</button>
+        <button onclick="changeAdminDate(1)">Next Day</button>
+      </div>
+      <h2>Sign-Out Records</h2>
+      <ul id="sign-out-list">
+        <!-- Sign-out logs will go here -->
+      </ul>
+      <h2>Sign-In Records</h2>
+      <ul id="sign-in-list">
+        <!-- Sign-in logs will go here -->
+      </ul>
+    </div>
+    
+    <!-- Admin Monthly View -->
+    <div id="admin-monthly-view" class="hidden">
+      <div class="current-date" id="admin-current-month"></div>
+      <div class="calendar-nav">
+        <button onclick="changeAdminMonth(-1)">Previous Month</button>
+        <button onclick="changeAdminMonth(0)">Current Month</button>
+        <button onclick="changeAdminMonth(1)">Next Month</button>
+      </div>
+      <div class="monthly-calendar" id="admin-month-calendar">
+        <!-- Month calendar will be generated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode 2: Student Interaction -->
+  <div id="mode2" class="container hidden">
+    <h1>Welcome, <span id="user-name" class="user-name-clickable"></span></h1>
+    <div id="return-to-menu" class="return-button hidden">Return to Menu</div>
+    <div id="main-menu" class="squares-container">
+      <div class="square" id="my-calendar">My Calendar</div>
+      <div class="square" id="sign-out">Sign Out</div>
+      <div class="square" id="sign-in">Sign Back In</div>
+    </div>
+    
+    <!-- User Profile View -->
+    <div id="user-profile" class="option-container hidden">
+      <h2>User Settings</h2>
+      <div class="user-profile-options">
+        <button id="view-all-records">View All My Records</button>
+        <button id="delete-all-data">Delete All My Data</button>
+        <div class="name-change">
+          <h3>Change Name</h3>
+          <input type="text" id="new-name-input" placeholder="New Name">
+          <button id="change-name-btn">Update Name</button>
+        </div>
+      </div>
+      <div id="all-records-container" class="hidden">
+        <h3>All My Records</h3>
+        <div id="all-records-list"></div>
+      </div>
+    </div>
+
+    <!-- My Calendar View -->
+    <div id="my-calendar-view" class="option-container hidden">
+      <h2>My Calendar</h2>
+      <div class="view-toggle">
+        <button id="user-daily-view-btn" onclick="setUserView('daily')" class="active">Daily View</button>
+        <button id="user-monthly-view-btn" onclick="setUserView('monthly')">Monthly View</button>
+      </div>
+      
+      <!-- User Daily View -->
+      <div id="user-daily-view">
+        <div class="calendar-nav">
+          <button onclick="changeMyCalendarDate(-1)">Previous Day</button>
+          <div class="current-date" id="my-calendar-date"></div>
+          <button onclick="changeMyCalendarDate(1)">Next Day</button>
+        </div>
+        <div id="my-calendar-content"></div>
+      </div>
+      
+      <!-- User Monthly View -->
+      <div id="user-monthly-view" class="hidden">
+        <div class="current-date" id="my-calendar-month"></div>
+        <div class="calendar-nav">
+          <button onclick="changeMyCalendarMonth(-1)">Previous Month</button>
+          <button onclick="changeMyCalendarMonth(0)">Current Month</button>
+          <button onclick="changeMyCalendarMonth(1)">Next Month</button>
+        </div>
+        <div class="monthly-calendar" id="user-month-calendar">
+          <!-- Month calendar will be generated here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Sign Out Options -->
+    <div id="sign-out-options" class="option-container hidden">
+      <h2>Sign Out Options</h2>
+      <div id="sign-out-main-options">
+        <button id="sign-out-now">Sign Out Now</button>
+        <button id="sign-out-later">Sign Out Later</button>
+      </div>
+      
+      <!-- Sign Out Now Options -->
+      <div id="sign-out-now-options" class="hidden">
+        <h3>Select Duration</h3>
+        <button id="sign-out-for-today">Sign Out for Today</button>
+        <button id="sign-out-until-week">Sign Out Until End of Week</button>
+      </div>
+      
+      <!-- Sign Out Later Options -->
+      <div id="sign-out-later-options" class="hidden">
+        <h3>Select Date and Time</h3>
+        <div class="date-time-picker">
+          <label for="sign-out-date">Date:</label>
+          <input type="date" id="sign-out-date">
+          <label for="sign-out-time">Time:</label>
+          <input type="time" id="sign-out-time">
+        </div>
+        <button id="confirm-later-sign-out">Confirm</button>
+        
+        <!-- Sign Out Later Duration Options -->
+        <div id="sign-out-later-duration" class="hidden">
+          <h3>Select Duration</h3>
+          <button id="sign-out-later-today">Sign Out for That Day</button>
+          <button id="sign-out-later-until-week">Sign Out Until End of Week</button>
+          <button id="sign-out-later-every-week">Every Week</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Data storage
+    let userData = {
+      currentUser: "",
+      isSignedIn: true,
+      signOutRecords: [],
+      signInRecords: []
+    };
+    
+    let currentMode = "login";
+    let currentDate = new Date();
+    let myCalendarDate = new Date();
+    let adminDate = new Date();
+    let adminMonth = new Date();
+    let myCalendarMonth = new Date();
+    
+    let adminView = "daily";
+    let userView = "daily";
+    let studentCurrentView = "main"; // 'main', 'calendar', 'signout', 'profile'
+    
+    // Format date for display
+    function formatDate(date) {
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    }
+    
+    // Format month for display
+    function formatMonth(date) {
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long'
+      });
+    }
+    
+    // Format time for display
+    function formatTime(date) {
+      return date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    }
+    
+    // Format date for comparison
+    function getDateString(date) {
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    }
+    
+    // Format month for comparison
+    function getMonthString(date) {
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    }
+    
+    // Initialize the app
+    function init() {
+      // Set all dates to today
+      const today = new Date();
+      myCalendarDate = new Date(today);
+      adminDate = new Date(today);
+      
+      document.getElementById("admin-current-date").textContent = formatDate(adminDate);
+      document.getElementById("my-calendar-date").textContent = formatDate(myCalendarDate);
+      document.getElementById("admin-current-month").textContent = formatMonth(adminMonth);
+      document.getElementById("my-calendar-month").textContent = formatMonth(myCalendarMonth);
+      
+      // Load data from localStorage if available
+      const savedData = localStorage.getItem('signOutApp');
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        
+        // Convert string dates back to Date objects
+        if (parsedData.signOutRecords) {
+          parsedData.signOutRecords.forEach(record => {
+            record.date = new Date(record.date);
+            if (record.endDate) record.endDate = new Date(record.endDate);
+          });
+        }
+        
+        if (parsedData.signInRecords) {
+          parsedData.signInRecords.forEach(record => {
+            record.date = new Date(record.date);
+          });
+        }
+        
+        userData = parsedData;
+      }
+      
+      updateCalendars();
+    }
+    
+    // Save data to localStorage
+    function saveData() {
+      localStorage.setItem('signOutApp', JSON.stringify(userData));
+    }
+    
+    // Handle login
+    function login() {
+      const nameInput = document.getElementById("name-input").value.trim();
+      if (nameInput) {
+        userData.currentUser = nameInput;
+        document.getElementById("user-name").textContent = nameInput;
+        
+        checkUserSignedInStatus();
+        switchMode("mode2");
+        saveData();
+      } else {
+        alert("Please enter your name to continue.");
+      }
+    }
+    
+    // Check if user is currently signed out
+    function checkUserSignedInStatus() {
+      const now = new Date();
+      const activeSignOut = userData.signOutRecords.find(record => {
+        return record.user === userData.currentUser && 
+               record.date <= now && 
+               (!record.endDate || record.endDate >= now) && 
+               !record.signedBackIn;
+      });
+      
+      userData.isSignedIn = !activeSignOut;
+      updateSignInButton();
+    }
+    
+    // Toggle between modes
+    function toggleMode() {
+      if (currentMode === "mode1") {
+        switchMode("mode2");
+      } else if (currentMode === "mode2") {
+        switchMode("mode1");
+      }
+    }
+    
+    // Switch to a specific mode
+    function switchMode(mode) {
+      // Hide all containers
+      document.getElementById("login-container").classList.add("hidden");
+      document.getElementById("mode1").classList.add("hidden");
+      document.getElementById("mode2").classList.add("hidden");
+      
+      // Show the selected container
+      document.getElementById(mode).classList.remove("hidden");
+      currentMode = mode;
+      
+      // If switching to student mode, make sure we're at the main menu
+      if (mode === "mode2") {
+        returnToStudentMainMenu();
+      }
+      
+      // Update calendars with current data
+      updateCalendars();
+    }
+    
+    // Set admin calendar view (daily or monthly)
+    function setAdminView(view) {
+      adminView = view;
+      
+      if (view === "daily") {
+        document.getElementById("admin-daily-view").classList.remove("hidden");
+        document.getElementById("admin-monthly-view").classList.add("hidden");
+        document.getElementById("admin-daily-view-btn").classList.add("active");
+        document.getElementById("admin-monthly-view-btn").classList.remove("active");
+        updateAdminCalendar();
+      } else {
+        document.getElementById("admin-daily-view").classList.add("hidden");
+        document.getElementById("admin-monthly-view").classList.remove("hidden");
+        document.getElementById("admin-daily-view-btn").classList.remove("active");
+        document.getElementById("admin-monthly-view-btn").classList.add("active");
+        renderAdminMonthlyCalendar();
+      }
+    }
+    
+    // Set user calendar view (daily or monthly)
+    function setUserView(view) {
+      userView = view;
+      
+      if (view === "daily") {
+        document.getElementById("user-daily-view").classList.remove("hidden");
+        document.getElementById("user-monthly-view").classList.add("hidden");
+        document.getElementById("user-daily-view-btn").classList.add("active");
+        document.getElementById("user-monthly-view-btn").classList.remove("active");
+        updateMyCalendar();
+      } else {
+        document.getElementById("user-daily-view").classList.add("hidden");
+        document.getElementById("user-monthly-view").classList.remove("hidden");
+        document.getElementById("user-daily-view-btn").classList.remove("active");
+        document.getElementById("user-monthly-view-btn").classList.add("active");
+        renderUserMonthlyCalendar();
+      }
+    }
+    
+    // Update the admin and user calendars
+    function updateCalendars() {
+      updateAdminCalendar();
+      updateMyCalendar();
+      updateSignInButton();
+      renderAdminMonthlyCalendar();
+      renderUserMonthlyCalendar();
+    }
+    
+    // Update the admin calendar view
+    function updateAdminCalendar() {
+      const signOutList = document.getElementById("sign-out-list");
+      const signInList = document.getElementById("sign-in-list");
+      
+      // Clear previous entries
+      signOutList.innerHTML = "";
+      signInList.innerHTML = "";
+      
+      // Filter records for the selected date
+      const adminDateStr = getDateString(adminDate);
+      
+      // Add sign-out records
+      userData.signOutRecords.forEach((record, index) => {
+        const recordDateStr = getDateString(record.date);
+        if (recordDateStr === adminDateStr) {
+          const li = document.createElement("li");
+          li.className = "sign-out record-item";
+          
+          const textSpan = document.createElement("span");
+          
+          let endDateText = "";
+          if (record.endDate) {
+            if (getDateString(record.endDate) === recordDateStr) {
+              endDateText = " until end of day";
+            } else {
+              endDateText = ` until ${formatDate(record.endDate)}`;
+            }
+          }
+          
+          if (record.isRecurring) {
+            endDateText += " (Weekly)";
+          }
+          
+          textSpan.textContent = `${record.user} signed out at ${formatTime(record.date)}${endDateText}`;
+          
+          if (record.signedBackIn) {
+            textSpan.textContent += " (Signed back in)";
+          }
+          
+          li.appendChild(textSpan);
+          
+          // Only add cancel button in admin view (not showing in Teacher mode)
+          
+          signOutList.appendChild(li);
+        }
+      });
+      
+      // Add sign-in records
+      userData.signInRecords.forEach(record => {
+        const recordDateStr = getDateString(record.date);
+        if (recordDateStr === adminDateStr) {
+          const li = document.createElement("li");
+          li.className = "sign-in";
+          li.textContent = `${record.user} signed back in at ${formatTime(record.date)}`;
+          signInList.appendChild(li);
+        }
+      });
+      
+      // Show message if no records
+      if (signOutList.children.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No sign-out records for this day.";
+        signOutList.appendChild(li);
+      }
+      
+      if (signInList.children.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No sign-in records for this day.";
+        signInList.appendChild(li);
+      }
+    }
+    
+    // Update the user's personal calendar view
+    function updateMyCalendar() {
+      const calendarContent = document.getElementById("my-calendar-content");
+      calendarContent.innerHTML = "";
+      
+      const myCalendarDateStr = getDateString(myCalendarDate);
+      const now = new Date();
+      
+      // Display user's sign-out records
+      const userSignOuts = userData.signOutRecords.filter(record => {
+        return record.user === userData.currentUser &&
+               (getDateString(record.date) === myCalendarDateStr || 
+                (record.endDate && record.date <= myCalendarDate && record.endDate >= myCalendarDate));
+      });
+      
+      if (userSignOuts.length > 0) {
+        const signOutsHeader = document.createElement("h3");
+        signOutsHeader.textContent = "Your Sign-Out Records:";
+        calendarContent.appendChild(signOutsHeader);
+        
+        const ul = document.createElement("ul");
+        userSignOuts.forEach((record, index) => {
+          const li = document.createElement("li");
+          li.className = "record-item";
+          
+          const textSpan = document.createElement("span");
+          
+          let status = "";
+          if (record.signedBackIn) {
+            status = " (Signed back in)";
+          } else if (record.date > now) {
+            status = " (Upcoming)";
+          } else {
+            status = " (Active)";
+          }
+          
+          let durationText = "";
+          if (record.endDate) {
+            if (getDateString(record.date) === getDateString(record.endDate)) {
+              durationText = " for that day";
+            } else {
+              durationText = ` until ${formatDate(record.endDate)}`;
+            }
+          }
+          
+          if (record.isRecurring) {
+            durationText += " (Weekly)";
+          }
+          
+          textSpan.textContent = `Signed out at ${formatTime(record.date)}${durationText}${status}`;
+          li.appendChild(textSpan);
+          
+          // Add cancel button
+          const cancelBtn = document.createElement("button");
+          cancelBtn.textContent = "Cancel";
+          cancelBtn.addEventListener("click", () => {
+            cancelSignOut(userData.signOutRecords.indexOf(record));
+            updateMyCalendar();
+          });
+          li.appendChild(cancelBtn);
+          
+          ul.appendChild(li);
+        });
+        calendarContent.appendChild(ul);
+      } else {
+        const noRecords = document.createElement("p");
+        noRecords.textContent = "No sign-out records for this day.";
+        calendarContent.appendChild(noRecords);
+      }
+      
+      // Display user's sign-in records
+      const userSignIns = userData.signInRecords.filter(record => {
+        return record.user === userData.currentUser && getDateString(record.date) === myCalendarDateStr;
+      });
+      
+      if (userSignIns.length > 0) {
+        const signInsHeader = document.createElement("h3");
+        signInsHeader.textContent = "Your Sign-In Records:";
+        calendarContent.appendChild(signInsHeader);
+        
+        const ul = document.createElement("ul");
+        userSignIns.forEach(record => {
+          const li = document.createElement("li");
+          li.textContent = `Signed back in at ${formatTime(record.date)}`;
+          ul.appendChild(li);
+        });
+        calendarContent.appendChild(ul);
+      }
+    }
+    
+    // Update the sign-in button appearance and functionality
+    function updateSignInButton() {
+      const signInButton = document.getElementById("sign-in");
+      const now = new Date();
+      
+      // Find if there's an active sign-out for the current user
+      const activeSignOut = userData.signOutRecords.find(record => {
+        return record.user === userData.currentUser && 
+               record.date <= now && 
+               (!record.endDate || record.endDate >= now) && 
+               !record.signedBackIn;
+      });
+      
+      // Find if there's a future sign-out for the current user
+      const futureSignOut = userData.signOutRecords.find(record => {
+        return record.user === userData.currentUser && 
+               record.date > now && 
+               !record.signedBackIn;
+      });
+      
+      if (activeSignOut) {
+        // User is currently signed out, enable the sign-in button
+        signInButton.classList.remove("gray", "disabled");
+        signInButton.style.cursor = "pointer";
+      } else {
+        // User is not signed out, disable the sign-in button
+        signInButton.classList.add("gray", "disabled");
+        signInButton.style.cursor = "not-allowed";
+      }
+    }
+    
+    // Render the admin monthly calendar
+    function renderAdminMonthlyCalendar() {
+      const calendarDiv = document.getElementById("admin-month-calendar");
+      renderMonthlyCalendar(calendarDiv, adminMonth, (date) => {
+        adminDate = new Date(date);
+        document.getElementById("admin-current-date").textContent = formatDate(adminDate);
+        setAdminView("daily");
+      });
+    }
+    
+    // Render the user monthly calendar
+    function renderUserMonthlyCalendar() {
+      const calendarDiv = document.getElementById("user-month-calendar");
+      renderMonthlyCalendar(calendarDiv, myCalendarMonth, (date) => {
+        myCalendarDate = new Date(date);
+        document.getElementById("my-calendar-date").textContent = formatDate(myCalendarDate);
+        setUserView("daily");
+      }, true);
+    }
+    
+    // Render a monthly calendar
+    function renderMonthlyCalendar(container, month, onDayClick, userOnly = false) {
+      container.innerHTML = "";
+      
+      // Get the first day of the month
+      const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
+      
+      // Get the last day of the month
+      const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+      
+      // Get the day of the week for the first day (0-6, 0 = Sunday)
+      const firstDayOfWeek = firstDay.getDay();
+      
+      // Create the day headers
+      const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      daysOfWeek.forEach(day => {
+        const dayHeader = document.createElement("div");
+        dayHeader.className = "day-header";
+        dayHeader.textContent = day;
+        container.appendChild(dayHeader);
+      });
+      
+      // Add empty cells for days before the start of the month
+      for (let i = 0; i < firstDayOfWeek; i++) {
+        const prevMonthDate = new Date(firstDay);
+        prevMonthDate.setDate(prevMonthDate.getDate() - (firstDayOfWeek - i));
+        
+        const dayCell = document.createElement("div");
+        dayCell.className = "calendar-day other-month";
+        dayCell.innerHTML = `<div class="day-number">${prevMonthDate.getDate()}</div>`;
+        
+        // Make previous month days clickable
+        dayCell.addEventListener("click", () => onDayClick(prevMonthDate));
+        
+        container.appendChild(dayCell);
+      }
+      
+      // Add cells for the current month
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      for (let i = 1; i <= lastDay.getDate(); i++) {
+        const currentDate = new Date(month.getFullYear(), month.getMonth(), i);
+        const dateStr = getDateString(currentDate);
+        
+        const dayCell = document.createElement("div");
+        dayCell.className = "calendar-day";
+        
+        // Check if it's today
+        if (currentDate.getTime() === today.getTime()) {
+          dayCell.classList.add("today");
+        }
+        
+        // Check if there are events on this day
+        let hasEvents = false;
+        
+        if (userOnly) {
+          // User view - only show days with user's events
+          hasEvents = userData.signOutRecords.some(record => {
+            // Check if record belongs to current user
+            if (record.user !== userData.currentUser) return false;
+            
+            // Check if record date matches currentDate
+            const recordDateStr = getDateString(record.date);
+            if (recordDateStr === dateStr) return true;
+            
+            // Check if record span includes currentDate
+            if (record.endDate) {
+              const endDateStr = getDateString(record.endDate);
+              return record.date <= currentDate && record.endDate >= currentDate;
+            }
+            
+            return false;
+          });
+        } else {
+          // Admin view - show all days with events
+          hasEvents = userData.signOutRecords.some(record => {
+            // Check if record date matches currentDate
+            const recordDateStr = getDateString(record.date);
+            if (recordDateStr === dateStr) return true;
+            
+            // Check if record span includes currentDate
+            if (record.endDate) {
+              return record.date <= currentDate && record.endDate >= currentDate;
+            }
+            
+            return false;
+          });
+        }
+        
+        if (hasEvents) {
+          dayCell.classList.add("has-events");
+        }
+        
+        dayCell.innerHTML = `<div class="day-number">${i}</div>`;
+        
+        // Add click event
+        dayCell.addEventListener("click", () => onDayClick(currentDate));
+        
+        container.appendChild(dayCell);
+      }
+      
+      // Add empty cells for days after the end of the month
+      const cellsCount = container.children.length;
+      const totalCells = 7 * Math.ceil((firstDayOfWeek + lastDay.getDate()) / 7);
+      
+      for (let i = cellsCount; i < totalCells; i++) {
+        const nextMonthDate = new Date(lastDay);
+        nextMonthDate.setDate(nextMonthDate.getDate() + (i - cellsCount + 1));
+        
+        const dayCell = document.createElement("div");
+        dayCell.className = "calendar-day other-month";
+        dayCell.innerHTML = `<div class="day-number">${nextMonthDate.getDate()}</div>`;
+        
+        // Make next month days clickable
+        dayCell.addEventListener("click", () => onDayClick(nextMonthDate));
+        
+        container.appendChild(dayCell);
+      }
+    }
+    
+    // Cancel a sign-out
+    function cancelSignOut(index) {
+      if (confirm("Are you sure you want to cancel this sign-out?")) {
+        // Remove the sign-out record
+        userData.signOutRecords.splice(index, 1);
+        
+        // Update user signed-in status
+        checkUserSignedInStatus();
+        
+        // Update calendars
+        updateCalendars();
+        saveData();
+        
+        alert("Sign-out cancelled successfully.");
+      }
+    }
+    
+    // Change the date for the admin calendar
+    function changeAdminDate(offset) {
+      if (offset === 0) {
+        adminDate = new Date();
+      } else {
+        adminDate = new Date(adminDate);
+        adminDate.setDate(adminDate.getDate() + offset);
+      }
+      document.getElementById("admin-current-date").textContent = formatDate(adminDate);
+      updateAdminCalendar();
+    }
+    
+    // Change the date for the user's personal calendar
+    function changeMyCalendarDate(offset) {
+      myCalendarDate = new Date(myCalendarDate);
+      myCalendarDate.setDate(myCalendarDate.getDate() + offset);
+      document.getElementById("my-calendar-date").textContent = formatDate(myCalendarDate);
+      updateMyCalendar();
+    }
+    
+    // Change the month for the admin calendar
+    function changeAdminMonth(offset) {
+      if (offset === 0) {
+        adminMonth = new Date();
+      } else {
+        adminMonth = new Date(adminMonth);
+        adminMonth.setMonth(adminMonth.getMonth() + offset);
+      }
+      document.getElementById("admin-current-month").textContent = formatMonth(adminMonth);
+      renderAdminMonthlyCalendar();
+    }
+    
+    // Change the month for the user's personal calendar
+    function changeMyCalendarMonth(offset) {
+      if (offset === 0) {
+        myCalendarMonth = new Date();
+      } else {
+        myCalendarMonth = new Date(myCalendarMonth);
+        myCalendarMonth.setMonth(myCalendarMonth.getMonth() + offset);
+      }
+      document.getElementById("my-calendar-month").textContent = formatMonth(myCalendarMonth);
+      renderUserMonthlyCalendar();
+    }
+    
+    // Sign out the user
+    function signOut(startDate, endDate = null, isRecurring = false) {
+      const record = {
+        user: userData.currentUser,
+        date: startDate,
+        endDate: endDate,
+        signedBackIn: false,
+        isRecurring: isRecurring
+      };
+      
+      userData.signOutRecords.push(record);
+      checkUserSignedInStatus();
+      
+      // If recurring, create additional weekly events
+      if (isRecurring) {
+        // Create 10 weekly recurring events
+        for (let i = 1; i <= 10; i++) {
+          const nextDate = new Date(startDate);
+          nextDate.setDate(nextDate.getDate() + (i * 7)); // Add 7 days for each week
+          
+          let nextEndDate = null;
+          if (endDate) {
+            nextEndDate = new Date(nextDate);
+            nextEndDate.setHours(endDate.getHours(), endDate.getMinutes(), endDate.getSeconds());
+          }
+          
+          const recurringRecord = {
+            user: userData.currentUser,
+            date: nextDate,
+            endDate: nextEndDate,
+            signedBackIn: false,
+            isRecurring: true
+          };
+          
+          userData.signOutRecords.push(recurringRecord);
+        }
+      }
+      
+      updateCalendars();
+      saveData();
+      
+      alert(`You have been signed out successfully.${isRecurring ? ' This sign-out will repeat weekly.' : ''}`);
+    }
+    
+    // Sign the user back in
+    function signBackIn() {
+      const now = new Date();
+      
+      // Find active sign-out records for the current user
+      let foundActive = false;
+      userData.signOutRecords.forEach(record => {
+        if (record.user === userData.currentUser && 
+            record.date <= now && 
+            (!record.endDate || record.endDate >= now) && 
+            !record.signedBackIn) {
+          record.signedBackIn = true;
+          foundActive = true;
+        }
+      });
+      
+      if (foundActive) {
+        // Add sign-in record
+        userData.signInRecords.push({
+          user: userData.currentUser,
+          date: now
+        });
+        
+        userData.isSignedIn = true;
+        updateSignInButton();
+        updateCalendars();
+        saveData();
+        
+        alert("You have been signed back in successfully.");
+      } else {
+        alert("You are not currently signed out.");
+      }
+    }
+    
+    // Get the end of the week date
+    function getEndOfWeek(date) {
+      const result = new Date(date);
+      result.setDate(date.getDate() + (6 - date.getDay()));
+      result.setHours(23, 59, 59, 999);
+      return result;
+    }
+    
+    // Get the end of the day date
+    function getEndOfDay(date) {
+      const result = new Date(date);
+      result.setHours(23, 59, 59, 999);
+      return result;
+    }
+    
+    // Show Return to Menu button on subviews and hide main menu
+    function showStudentSubview(subview) {
+      // Hide all option containers
+      document.getElementById("my-calendar-view").classList.add("hidden");
+      document.getElementById("sign-out-options").classList.add("hidden");
+      document.getElementById("user-profile").classList.add("hidden");
+      
+      // Hide main menu
+      document.getElementById("main-menu").classList.add("hidden");
+      
+      // Show return to menu button
+      document.getElementById("return-to-menu").classList.remove("hidden");
+      
+      // Show requested subview
+      document.getElementById(subview).classList.remove("hidden");
+      
+      studentCurrentView = subview.replace("-view", "").replace("-options", "");
+    }
+    
+    // Return to main menu in student mode
+    function returnToStudentMainMenu() {
+      // Hide all option containers
+      document.getElementById("my-calendar-view").classList.add("hidden");
+      document.getElementById("sign-out-options").classList.add("hidden");
+      document.getElementById("user-profile").classList.add("hidden");
+      document.getElementById("sign-out-now-options").classList.add("hidden");
+      document.getElementById("sign-out-later-options").classList.add("hidden");
+      document.getElementById("sign-out-later-duration").classList.add("hidden");
+      document.getElementById("all-records-container").classList.add("hidden");
+      
+      // Show main menu
+      document.getElementById("main-menu").classList.remove("hidden");
+      
+      // Hide return to menu button
+      document.getElementById("return-to-menu").classList.add("hidden");
+      
+      // Reset sign-out options view
+      document.getElementById("sign-out-main-options").classList.remove("hidden");
+      
+      studentCurrentView = "main";
+    }
+    
+    // Event Listeners
+    document.addEventListener("DOMContentLoaded", function() {
+      // Initialize the app
+      init();
+      
+      // Return to menu button click
+      document.getElementById("return-to-menu").addEventListener("click", returnToStudentMainMenu);
+      
+      // Username click for profile view
+      document.getElementById("user-name").addEventListener("click", function() {
+        showStudentSubview("user-profile");
+      });
+      
+      // View all records button
+      document.getElementById("view-all-records").addEventListener("click", function() {
+        const recordsContainer = document.getElementById("all-records-list");
+        recordsContainer.innerHTML = "";
+        
+        // Filter records for current user
+        const userSignOuts = userData.signOutRecords.filter(record => 
+          record.user === userData.currentUser
+        ).sort((a, b) => b.date - a.date); // Sort by date descending
+        
+        const userSignIns = userData.signInRecords.filter(record => 
+          record.user === userData.currentUser
+        ).sort((a, b) => b.date - a.date); // Sort by date descending
+        
+        if (userSignOuts.length === 0 && userSignIns.length === 0) {
+          recordsContainer.innerHTML = "<p>No records found.</p>";
+        } else {
+          // Create sign-out section
+          if (userSignOuts.length > 0) {
+            const signOutHeader = document.createElement("h4");
+            signOutHeader.textContent = "Sign-Out Records:";
+            recordsContainer.appendChild(signOutHeader);
+            
+            const signOutList = document.createElement("ul");
+            userSignOuts.forEach((record, index) => {
+              const li = document.createElement("li");
+              li.className = "record-item";
+              
+              const textSpan = document.createElement("span");
+              
+              let endDateText = "";
+              if (record.endDate) {
+                if (getDateString(record.date) === getDateString(record.endDate)) {
+                  endDateText = " until end of day";
+                } else {
+                  endDateText = ` until ${formatDate(record.endDate)}`;
+                }
+              }
+              
+              if (record.isRecurring) {
+                endDateText += " (Weekly)";
+              }
+              
+              textSpan.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}${endDateText}`;
+              
+              if (record.signedBackIn) {
+                textSpan.textContent += " (Signed back in)";
+              }
+              
+              li.appendChild(textSpan);
+              
+              // Add cancel button
+              const cancelBtn = document.createElement("button");
+              cancelBtn.textContent = "Cancel";
+              cancelBtn.addEventListener("click", () => {
+                cancelSignOut(userData.signOutRecords.indexOf(record));
+                document.getElementById("view-all-records").click(); // Refresh the list
+              });
+              li.appendChild(cancelBtn);
+              
+              signOutList.appendChild(li);
+            });
+            recordsContainer.appendChild(signOutList);
+          }
+          
+          // Create sign-in section
+          if (userSignIns.length > 0) {
+            const signInHeader = document.createElement("h4");
+            signInHeader.textContent = "Sign-In Records:";
+            recordsContainer.appendChild(signInHeader);
+            
+            const signInList = document.createElement("ul");
+            userSignIns.forEach(record => {
+              const li = document.createElement("li");
+              li.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}`;
+              signInList.appendChild(li);
+            });
+            recordsContainer.appendChild(signInList);
+          }
+        }
+        
+        document.getElementById("all-records-container").classList.remove("hidden");
+      });
+      
+      // Delete all data button
+      document.getElementById("delete-all-data").addEventListener("click", function() {
+        if (confirm("Are you sure you want to delete all your data? This cannot be undone.")) {
+          // Remove all records for current user
+          userData.signOutRecords = userData.signOutRecords.filter(record => 
+            record.user !== userData.currentUser
+          );
+          
+          userData.signInRecords = userData.signInRecords.filter(record => 
+            record.user !== userData.currentUser
+          );
+          
+          // Save data
+          saveData();
+          
+          // Update UI
+          updateCalendars();
+          alert("All your data has been deleted.");
+          
+          // Return to main menu
+          returnToStudentMainMenu();
+        }
+      });
+      
+      // Change name button
+      document.getElementById("change-name-btn").addEventListener("click", function() {
+        const newName = document.getElementById("new-name-input").value.trim();
+        
+        if (newName) {
+          // Update all records for current user
+          userData.signOutRecords.forEach(record => {
+            if (record.user === userData.currentUser) {
+              record.user = newName;
+            }
+          });
+          
+          userData.signInRecords.forEach(record => {
+            if (record.user === userData.currentUser) {
+              record.user = newName;
+            }
+          });
+          
+          // Update current user
+          userData.currentUser = newName;
+          document.getElementById("user-name").textContent = newName;
+          
+          // Save data
+          saveData();
+          
+          // Clear input
+          document.getElementById("new-name-input").value = "";
+          
+          alert("Your name has been updated.");
+        } else {
+          alert("Please enter a valid name.");
+        }
+      });
+      
+      // My Calendar button click
+      document.getElementById("my-calendar").addEventListener("click", function() {
+        showStudentSubview("my-calendar-view");
+        updateMyCalendar();
+      });
+      
+      // Sign Out button click
+      document.getElementById("sign-out").addEventListener("click", function() {
+        showStudentSubview("sign-out-options");
+      });
+      
+      // Sign Back In button click
+      document.getElementById("sign-in").addEventListener("click", function() {
+        if (!this.classList.contains("disabled")) {
+          signBackIn();
+          returnToStudentMainMenu();
+        } else {
+          alert("You are not currently signed out or your sign-out is scheduled for the future.");
+        }
+      });
+      
+      // Sign Out Now button click
+      document.getElementById("sign-out-now").addEventListener("click", function() {
+        document.getElementById("sign-out-main-options").classList.add("hidden");
+        document.getElementById("sign-out-now-options").classList.remove("hidden");
+        document.getElementById("sign-out-later-options").classList.add("hidden");
+      });
+      
+      // Sign Out Later button click
+      document.getElementById("sign-out-later").addEventListener("click", function() {
+        document.getElementById("sign-out-main-options").classList.add("hidden");
+        document.getElementById("sign-out-later-options").classList.remove("hidden");
+        document.getElementById("sign-out-now-options").classList.add("hidden");
+        document.getElementById("sign-out-later-duration").classList.add("hidden");
+        
+        // Set default date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById("sign-out-date").valueAsDate = tomorrow;
+      });
+      
+      // Sign Out for Today button click
+      document.getElementById("sign-out-for-today").addEventListener("click", function() {
+        const now = new Date();
+        const endOfDay = getEndOfDay(now);
+        signOut(now, endOfDay);
+        returnToStudentMainMenu();
+      });
+      
+      // Sign Out Until End of Week button click
+      document.getElementById("sign-out-until-week").addEventListener("click", function() {
+        const now = new Date();
+        const endOfWeek = getEndOfWeek(now);
+        signOut(now, endOfWeek);
+        returnToStudentMainMenu();
+      });
+      
+      // Confirm Later Sign Out button click
+      document.getElementById("confirm-later-sign-out").addEventListener("click", function() {
+        const dateInput = document.getElementById("sign-out-date").value;
+        const timeInput = document.getElementById("sign-out-time").value;
+        
+        if (dateInput && timeInput) {
+          document.getElementById("sign-out-later-duration").classList.remove("hidden");
+        } else {
+          alert("Please select both date and time.");
+        }
+      });
+      
+      // Sign Out Later for That Day button click
+      document.getElementById("sign-out-later-today").addEventListener("click", function() {
+        const dateInput = document.getElementById("sign-out-date").value;
+        const timeInput = document.getElementById("sign-out-time").value;
+        
+        if (dateInput && timeInput) {
+          const signOutDate = new Date(`${dateInput}T${timeInput}`);
+          const endOfDay = getEndOfDay(signOutDate);
+          
+          signOut(signOutDate, endOfDay);
+          returnToStudentMainMenu();
+        } else {
+          alert("Please select both date and time.");
+        }
+      });
+      
+      // Sign Out Later Until End of Week button click
+      document.getElementById("sign-out-later-until-week").addEventListener("click", function() {
+        const dateInput = document.getElementById("sign-out-date").value;
+        const timeInput = document.getElementById("sign-out-time").value;
+        
+        if (dateInput && timeInput) {
+          const signOutDate = new Date(`${dateInput}T${timeInput}`);
+          const endOfWeek = getEndOfWeek(signOutDate);
+          
+          signOut(signOutDate, endOfWeek);
+          returnToStudentMainMenu();
+        } else {
+          alert("Please select both date and time.");
+        }
+      });
+      
+      // Sign Out Later Every Week button click
+      document.getElementById("sign-out-later-every-week").addEventListener("click", function() {
+        const dateInput = document.getElementById("sign-out-date").value;
+        const timeInput = document.getElementById("sign-out-time").value;
+        
+        if (dateInput && timeInput) {
+          const signOutDate = new Date(`${dateInput}T${timeInput}`);
+          const endOfDay = getEndOfDay(signOutDate);
+          
+          // Add recurring flag
+          signOut(signOutDate, endOfDay, true);
+          returnToStudentMainMenu();
+        } else {
+          alert("Please select both date and time.");
+        }
+      });
+      
+      // Enter key press on name input
+      document.getElementById("name-input").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+          login();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
