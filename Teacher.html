@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher View - Sign-Out Website</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Initialize Firebase -->
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEfc8pQ0UHiIm9XQSYbKgI2IhOuP1w0do",
+      authDomain: "ez-signout-b1f95.firebaseapp.com",
+      projectId: "ez-signout-b1f95",
+      storageBucket: "ez-signout-b1f95.firebasestorage.app",
+      messagingSenderId: "747672158416",
+      appId: "1:747672158416:web:dbf4f85c5acfb5c9785ed5"
+    };
+  
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .container {
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      position: relative;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background-color: #f8f8f8;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background-color: #e8e8e8;
+    }
+    button.active {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .hidden {
+      display: none !important;
+    }
+    #calendar-list {
+      list-style-type: none;
+      padding: 0;
+    }
+    #calendar-list li {
+      padding: 10px;
+      margin-bottom: 5px;
+      border-left: 4px solid #4CAF50;
+      background-color: #f9f9f9;
+    }
+    #sign-out-list li, #sign-in-list li {
+      padding: 10px;
+      margin-bottom: 5px;
+      background-color: #f9f9f9;
+    }
+    #sign-out-list li {
+      border-left: 4px solid #f44336;
+    }
+    #sign-in-list li {
+      border-left: 4px solid #4CAF50;
+    }
+    .view-toggle {
+      display: flex;
+      margin-bottom: 15px;
+    }
+    .view-toggle button {
+      border-radius: 0;
+      margin: 0;
+    }
+    .view-toggle button:first-child {
+      border-top-left-radius: 4px;
+      border-bottom-left-radius: 4px;
+    }
+    .view-toggle button:last-child {
+      border-top-right-radius: 4px;
+      border-bottom-right-radius: 4px;
+    }
+    .current-date {
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .monthly-calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-top: 15px;
+    }
+    .day-header {
+      text-align: center;
+      font-weight: bold;
+      padding: 5px;
+      background-color: #f0f0f0;
+    }
+    .calendar-day {
+      border: 1px solid #ddd;
+      padding: 5px;
+      min-height: 40px;
+      text-align: right;
+      cursor: pointer;
+      position: relative;
+    }
+    .calendar-day:hover {
+      background-color: #f5f5f5;
+    }
+    .calendar-day.other-month {
+      background-color: #f9f9f9;
+      color: #aaa;
+    }
+    .calendar-day.today {
+      background-color: #e6f7ff;
+      border: 2px solid #1890ff;
+    }
+    .calendar-day.has-events {
+      font-weight: bold;
+    }
+    .calendar-day.has-events::after {
+      content: "";
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #f44336;
+    }
+    .day-number {
+      font-size: 12px;
+    }
+    #mode-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #333;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .record-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="mode-toggle" onclick="toggleMode()">Switch to Student Mode</div>
+
+  <div id="teacher-view" class="container">
+    <h1>Teacher Calendar</h1>
+    <div class="view-toggle">
+      <button id="admin-daily-view-btn" onclick="setAdminView('daily')" class="active">Daily View</button>
+      <button id="admin-monthly-view-btn" onclick="setAdminView('monthly')">Monthly View</button>
+    </div>
+    
+    <!-- Admin Daily View -->
+    <div id="admin-daily-view">
+      <div class="current-date" id="admin-current-date"></div>
+      <div class="calendar-nav">
+        <button onclick="changeAdminDate(-1)">Previous Day</button>
+        <button onclick="changeAdminDate(0)">Today</button>
+        <button onclick="changeAdminDate(1)">Next Day</button>
+      </div>
+      <h2>Sign-Out Records</h2>
+      <ul id="sign-out-list">
+        <!-- Sign-out logs will go here -->
+      </ul>
+      <h2>Sign-In Records</h2>
+      <ul id="sign-in-list">
+        <!-- Sign-in logs will go here -->
+      </ul>
+    </div>
+    
+    <!-- Admin Monthly View -->
+    <div id="admin-monthly-view" class="hidden">
+      <div class="current-date" id="admin-current-month"></div>
+      <div class="calendar-nav">
+        <button onclick="changeAdminMonth(-1)">Previous Month</button>
+        <button onclick="changeAdminMonth(0)">Current Month</button>
+        <button onclick="changeAdminMonth(1)">Next Month</button>
+      </div>
+      <div class="monthly-calendar" id="admin-month-calendar">
+        <!-- Month calendar will be generated here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Data storage
+    let userData = {
+      signOutRecords: [],
+      signInRecords: []
+    };
+    
+    let adminDate = new Date();
+    let adminMonth = new Date();
+    let adminView = "daily";
+    
+    // Initialize the app
+    async function init() {
+      // Set dates to today
+      const today = new Date();
+      adminDate = new Date(today);
+      adminMonth = new Date(today);
+      
+      document.getElementById("admin-current-date").textContent = formatDate(adminDate);
+      document.getElementById("admin-current-month").textContent = formatMonth(adminMonth);
+      
+      try {
+        // Load data from Firestore
+        const docRef = db.collection('signOutApp').doc('userData');
+        const doc = await docRef.get();
+        
+        if (doc.exists) {
+          const data = doc.data();
+          
+          // Convert string dates back to Date objects
+          if (data.signOutRecords) {
+            data.signOutRecords.forEach(record => {
+              record.date = new Date(record.date);
+              if (record.endDate) record.endDate = new Date(record.endDate);
+            });
+          }
+          
+          if (data.signInRecords) {
+            data.signInRecords.forEach(record => {
+              record.date = new Date(record.date);
+            });
+          }
+          
+          userData = data;
+        } else {
+          // Initialize with empty data if document doesn't exist
+          userData = {
+            signOutRecords: [],
+            signInRecords: []
+          };
+          
+          // Create the document
+          await docRef.set(userData);
+        }
+        
+        updateAdminCalendar();
+        renderAdminMonthlyCalendar();
+      } catch (error) {
+        console.error("Error loading data:", error);
+        
+        // Fallback to empty data
+        userData = {
+          signOutRecords: [],
+          signInRecords: []
+        };
+        
+        updateAdminCalendar();
+        renderAdminMonthlyCalendar();
+      }
+    }
+    
+    // Format date for display
+    function formatDate(date) {
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    }
+    
+    // Format month for display
+    function formatMonth(date) {
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long'
+      });
+    }
+    
+    // Format time for display
+    function formatTime(date) {
+      return date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    }
+    
+    // Format date for comparison
+    function getDateString(date) {
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    }
+    
+    // Update the admin calendar view
+    function updateAdminCalendar() {
+      const signOutList = document.getElementById("sign-out-list");
+      const signInList = document.getElementById("sign-in-list");
+      
+      // Clear previous entries
+      signOutList.innerHTML = "";
+      signInList.innerHTML = "";
+      
+      // Filter records for the selected date
+      const adminDateStr = getDateString(adminDate);
+      
+      // Add sign-out records
+      userData.signOutRecords.forEach((record, index) => {
+        const recordDateStr = getDateString(record.date);
+        if (recordDateStr === adminDateStr) {
+          const li = document.createElement("li");
+          li.className = "sign-out record-item";
+          
+          const textSpan = document.createElement("span");
+          
+          let endDateText = "";
+          if (record.endDate) {
+            if (getDateString(record.endDate) === recordDateStr) {
+              endDateText = " until end of day";
+            } else {
+              endDateText = ` until ${formatDate(record.endDate)}`;
+            }
+          }
+          
+          if (record.isRecurring) {
+            endDateText += " (Weekly)";
+          }
+          
+          textSpan.textContent = `${record.user} signed out at ${formatTime(record.date)}${endDateText}`;
+          
+          if (record.signedBackIn) {
+            textSpan.textContent += " (Signed back in)";
+          }
+          
+          li.appendChild(textSpan);
+          signOutList.appendChild(li);
+        }
+      });
+      
+      // Add sign-in records
+      userData.signInRecords.forEach(record => {
+        const recordDateStr = getDateString(record.date);
+        if (recordDateStr === adminDateStr) {
+          const li = document.createElement("li");
+          li.className = "sign-in";
+          li.textContent = `${record.user} signed back in at ${formatTime(record.date)}`;
+          signInList.appendChild(li);
+        }
+      });
+      
+      // Show message if no records
+      if (signOutList.children.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No sign-out records for this day.";
+        signOutList.appendChild(li);
+      }
+      
+      if (signInList.children.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No sign-in records for this day.";
+        signInList.appendChild(li);
+      }
+    }
+    
+    // Set admin calendar view (daily or monthly)
+    function setAdminView(view) {
+      adminView = view;
+      
+      if (view === "daily") {
+        document.getElementById("admin-daily-view").classList.remove("hidden");
+        document.getElementById("admin-monthly-view").classList.add("hidden");
+        document.getElementById("admin-daily-view-btn").classList.add("active");
+        document.getElementById("admin-monthly-view-btn").classList.remove("active");
+        updateAdminCalendar();
+      } else {
+        document.getElementById("admin-daily-view").classList.add("hidden");
+        document.getElementById("admin-monthly-view").classList.remove("hidden");
+        document.getElementById("admin-daily-view-btn").classList.remove("active");
+        document.getElementById("admin-monthly-view-btn").classList.add("active");
+        renderAdminMonthlyCalendar();
+      }
+    }
+    
+    // Change the date for the admin calendar
+    function changeAdminDate(offset) {
+      if (offset === 0) {
+        adminDate = new Date();
+      } else {
+        adminDate = new Date(adminDate);
+        adminDate.setDate(adminDate.getDate() + offset);
+      }
+      document.getElementById("admin-current-date").textContent = formatDate(adminDate);
+      updateAdminCalendar();
+    }
+    
+    // Change the month for the admin calendar
+    function changeAdminMonth(offset) {
+      if (offset === 0) {
+        adminMonth = new Date();
+      } else {
+        adminMonth = new Date(adminMonth);
+        adminMonth.setMonth(adminMonth.getMonth() + offset);
+      }
+      document.getElementById("admin-current-month").textContent = formatMonth(adminMonth);
+      renderAdminMonthlyCalendar();
+    }
+    
+    // Render the admin monthly calendar
+    function renderAdminMonthlyCalendar() {
+      const calendarDiv = document.getElementById("admin-month-calendar");
+      renderMonthlyCalendar(calendarDiv, adminMonth, (date) => {
+        adminDate = new Date(date);
+        document.getElementById("admin-current-date").textContent = formatDate(adminDate);
+        setAdminView("daily");
+      });
+    }
+    
+    // Render a monthly calendar
+    function renderMonthlyCalendar(container, month, onDayClick) {
+      container.innerHTML = "";
+      
+      // Get the first day of the month
+      const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
+      
+      // Get the last day of the month
+      const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+      
+      // Get the day of the week for the first day (0-6, 0 = Sunday)
+      const firstDayOfWeek = firstDay.getDay();
+      
+      // Create the day headers
+      const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      daysOfWeek.forEach(day => {
+        const dayHeader = document.createElement("div");
+        dayHeader.className = "day-header";
+        dayHeader.textContent = day;
+        container.appendChild(dayHeader);
+      });
+      
+      // Add empty cells for days before the start of the month
+      for (let i = 0; i < firstDayOfWeek; i++) {
+        const prevMonthDate = new Date(firstDay);
+        prevMonthDate.setDate(prevMonthDate.getDate() - (firstDayOfWeek - i));
+        
+        const dayCell = document.createElement("div");
+        dayCell.className = "calendar-day other-month";
+        dayCell.innerHTML = `<div class="day-number">${prevMonthDate.getDate()}</div>`;
+        
+        // Make previous month days clickable
+        dayCell.addEventListener("click", () => onDayClick(prevMonthDate));
+        
+        container.appendChild(dayCell);
+      }
+      
+      // Add cells for the current month
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      for (let i = 1; i <= lastDay.getDate(); i++) {
+        const currentDate = new Date(month.getFullYear(), month.getMonth(), i);
+        const dateStr = getDateString(currentDate);
+        
+        const dayCell = document.createElement("div");
+        dayCell.className = "calendar-day";
+        
+        // Check if it's today
+        if (currentDate.getTime() === today.getTime()) {
+          dayCell.classList.add("today");
+        }
+        
+        // Check if there are events on this day
+        const hasEvents = userData.signOutRecords.some(record => {
+          // Check if record date matches currentDate
+          const recordDateStr = getDateString(record.date);
+          if (recordDateStr === dateStr) return true;
+          
+          // Check if record span includes currentDate
+          if (record.endDate) {
+            return record.date <= currentDate && record.endDate >= currentDate;
+          }
+          
+          return false;
+        });
+        
+        if (hasEvents) {
+          dayCell.classList.add("has-events");
+        }
+        
+        dayCell.innerHTML = `<div class="day-number">${i}</div>`;
+        
+        // Add click event
+        dayCell.addEventListener("click", () => onDayClick(currentDate));
+        
+        container.appendChild(dayCell);
+      }
+      
+      // Add empty cells for days after the end of the month
+      const cellsCount = container.children.length;
+      const totalCells = 7 * Math.ceil((firstDayOfWeek + lastDay.getDate()) / 7);
+      
+      for (let i = cellsCount; i < totalCells; i++) {
+        const nextMonthDate = new Date(lastDay);
+        nextMonthDate.setDate(nextMonthDate.getDate() + (i - cellsCount + 1));
+        
+        const dayCell = document.createElement("div");
+        dayCell.className = "calendar-day other-month";
+        dayCell.innerHTML = `<div class="day-number">${nextMonthDate.getDate()}</div>`;
+        
+        // Make next month days clickable
+        dayCell.addEventListener("click", () => onDayClick(nextMonthDate));
+        
+        container.appendChild(dayCell);
+      }
+    }
+    
+    // Toggle between modes
+    function toggleMode() {
+      window.location.href = 'student-view.html';
+    }
+    
+    // Initialize on page load
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
