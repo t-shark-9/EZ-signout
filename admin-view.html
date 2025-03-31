@@ -1,5 +1,88 @@
 // Update User All Records
     function updateUserAllRecords() {
+      if (!currentSelectedUser) return;
+      
+      const allSignOutsList = document.getElementById('user-all-signouts');
+      const allSignInsList = document.getElementById('user-all-signins');
+      
+      // Clear previous entries
+      allSignOutsList.innerHTML = '';
+      allSignInsList.innerHTML = '';
+      
+      const classToUse = currentSelectedClass || "No Class";
+      
+      // Filter all records for the selected user and class
+      const userSignOuts = userData.signOutRecords.filter(record => {
+        const recordClass = record.class || "No Class";
+        return record.user === currentSelectedUser && recordClass === classToUse;
+      });
+      
+      const userSignIns = userData.signInRecords.filter(record => {
+        const recordClass = record.class || "No Class";
+        return record.user === currentSelectedUser && recordClass === classToUse;
+      });
+      
+      // Add all sign-out records
+      if (userSignOuts.length > 0) {
+        userSignOuts.sort((a, b) => b.date - a.date); // Sort by date descending
+        
+        userSignOuts.forEach((record) => {
+          const li = document.createElement('li');
+          li.className = 'sign-out';
+          
+          const contentDiv = document.createElement('div');
+          
+          let endDateText = '';
+          if (record.endDate) {
+            if (getDateString(record.date) === getDateString(record.endDate)) {
+              endDateText = ' until end of day';
+            } else {
+              endDateText = ` until ${formatDate(record.endDate)}`;
+            }
+          }
+          
+          if (record.isRecurring) {
+            endDateText += ' (Weekly)';
+          }
+          
+          const status = record.signedBackIn ? ' (Signed back in)' : '';
+          
+          contentDiv.innerHTML = `${formatDate(record.date)} at ${formatTime(record.date)}${endDateText}${status}`;
+          
+          // Add reason if exists
+          if (record.reason) {
+            const reasonDiv = document.createElement('div');
+            reasonDiv.className = 'reason-tag';
+            reasonDiv.textContent = `Reason: ${record.reason}`;
+            contentDiv.appendChild(reasonDiv);
+          }
+          
+          li.appendChild(contentDiv);
+          allSignOutsList.appendChild(li);
+        });
+      } else {
+        const li = document.createElement('li');
+        li.textContent = 'No sign-out records found.';
+        allSignOutsList.appendChild(li);
+      }
+      
+      // Add all sign-in records
+      if (userSignIns.length > 0) {
+        userSignIns.sort((a, b) => b.date - a.date); // Sort by date descending
+        
+        userSignIns.forEach(record => {
+          const li = document.createElement('li');
+          li.className = 'sign-in';
+          li.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}`;
+          allSignInsList.appendChild(li);
+        });
+      } else {
+        const li = document.createElement('li');
+        li.textContent = 'No sign-in records found.';
+        allSignInsList.appendChild(li);
+      }
+    }    // Update User All Records
+    function updateUserAllRecords() {
       if (!currentSelectedUser || !currentSelectedClass) return;
       
       const allSignOutsList = document.getElementById('user-all-signouts');
@@ -98,16 +181,23 @@
       // Filter function for class selection
       const classFilter = (record) => {
         if (selectedClass === "all") return true;
-        return record.class === selectedClass;
+        const recordClass = record.class || "No Class";
+        return recordClass === selectedClass;
       };
       
       // Calculate total users
       const uniqueUsers = new Set();
       userData.signOutRecords.filter(classFilter).forEach(record => {
-        uniqueUsers.add(`${record.user}_${record.class || ''}`);
+        if (record.user) {
+          const recordClass = record.class || "No Class";
+          uniqueUsers.add(`${record.user}_${recordClass}`);
+        }
       });
       userData.signInRecords.filter(classFilter).forEach(record => {
-        uniqueUsers.add(`${record.user}_${record.class || ''}`);
+        if (record.user) {
+          const recordClass = record.class || "No Class";
+          uniqueUsers.add(`${record.user}_${recordClass}`);
+        }
       });
       
       // Calculate total sign-outs
@@ -153,22 +243,26 @@
     
     // Delete User Data
     function deleteUserData(username, userClass) {
-      if (!username || !userClass) return;
+      if (!username) return;
+      
+      const classToUse = userClass || "No Class";
       
       // Remove all user's records with matching class
-      userData.signOutRecords = userData.signOutRecords.filter(record => 
-        !(record.user === username && record.class === userClass)
-      );
+      userData.signOutRecords = userData.signOutRecords.filter(record => {
+        const recordClass = record.class || "No Class";
+        return !(record.user === username && recordClass === classToUse);
+      });
       
-      userData.signInRecords = userData.signInRecords.filter(record => 
-        !(record.user === username && record.class === userClass)
-      );
+      userData.signInRecords = userData.signInRecords.filter(record => {
+        const recordClass = record.class || "No Class";
+        return !(record.user === username && recordClass === classToUse);
+      });
       
       // Save to Firebase
       saveData();
       
       // If viewing user details, go back to list
-      if (currentSelectedUser === username && currentSelectedClass === userClass) {
+      if (currentSelectedUser === username && currentSelectedClass === classToUse) {
         backToUserList();
       }
       
@@ -176,7 +270,7 @@
       populateUserList();
       updateStats();
       
-      alert(`All data for ${username} (${userClass}) has been deleted.`);
+      alert(`All data for ${username} (${classToUse}) has been deleted.`);
     }
     
     // Confirm Delete User Data from details view
@@ -1142,17 +1236,20 @@
       
       // Process sign-out records
       userData.signOutRecords.forEach(record => {
-        if (record.user && record.class) {
+        if (record.user) {
+          // Check if class is present, default to "No Class" if missing
+          const recordClass = record.class || "No Class";
+          
           // Apply class filter if selected
-          if (selectedClass !== "all" && record.class !== selectedClass) {
+          if (selectedClass !== "all" && recordClass !== selectedClass) {
             return;
           }
           
-          const key = `${record.user}_${record.class}`;
+          const key = `${record.user}_${recordClass}`;
           if (!userClassMap.has(key)) {
             userClassMap.set(key, {
               user: record.user,
-              class: record.class,
+              class: recordClass,
               signOuts: 0,
               signIns: 0,
               lastActivity: null
@@ -1172,17 +1269,20 @@
       
       // Process sign-in records
       userData.signInRecords.forEach(record => {
-        if (record.user && record.class) {
+        if (record.user) {
+          // Check if class is present, default to "No Class" if missing
+          const recordClass = record.class || "No Class";
+          
           // Apply class filter if selected
-          if (selectedClass !== "all" && record.class !== selectedClass) {
+          if (selectedClass !== "all" && recordClass !== selectedClass) {
             return;
           }
           
-          const key = `${record.user}_${record.class}`;
+          const key = `${record.user}_${recordClass}`;
           if (!userClassMap.has(key)) {
             userClassMap.set(key, {
               user: record.user,
-              class: record.class,
+              class: recordClass,
               signOuts: 0,
               signIns: 0,
               lastActivity: null
@@ -1306,7 +1406,7 @@
     // View User Details
     function viewUserDetails(username, userClass) {
       currentSelectedUser = username;
-      currentSelectedClass = userClass;
+      currentSelectedClass = userClass || "No Class";
       
       // Hide user list and show user details
       document.getElementById('users-content').classList.add('hidden');
@@ -1314,10 +1414,10 @@
       
       // Set user name and class
       document.getElementById('user-detail-name').textContent = username;
-      document.getElementById('user-detail-class').textContent = `Class: ${userClass}`;
+      document.getElementById('user-detail-class').textContent = `Class: ${currentSelectedClass}`;
       
       // Update user statistics
-      updateUserStats(username, userClass);
+      updateUserStats(username, currentSelectedClass);
       
       // Set default view
       setUserDetailView('calendar');
@@ -1329,9 +1429,12 @@
     
     // Update User Statistics
     function updateUserStats(username, userClass) {
-      const userSignOuts = userData.signOutRecords.filter(record => 
-        record.user === username && record.class === userClass
-      );
+      const classToUse = userClass || "No Class";
+      
+      const userSignOuts = userData.signOutRecords.filter(record => {
+        const recordClass = record.class || "No Class";
+        return record.user === username && recordClass === classToUse;
+      });
       
       // Update sign-out count
       document.getElementById('user-total-signouts').textContent = userSignOuts.length;
@@ -1350,9 +1453,10 @@
       statusElement.style.color = isSignedOut ? 'var(--signout-color)' : 'var(--signin-color)';
       
       // Get last activity date
-      const userSignIns = userData.signInRecords.filter(record => 
-        record.user === username && record.class === userClass
-      );
+      const userSignIns = userData.signInRecords.filter(record => {
+        const recordClass = record.class || "No Class";
+        return record.user === username && recordClass === classToUse;
+      });
       
       let lastActivity = null;
       const allUserRecords = [...userSignOuts, ...userSignIns];
@@ -1405,7 +1509,7 @@
     
     // Update User Detail Calendar
     function updateUserDetailCalendar() {
-      if (!currentSelectedUser || !currentSelectedClass) return;
+      if (!currentSelectedUser) return;
       
       const signOutList = document.getElementById('user-detail-signout-list');
       const signInList = document.getElementById('user-detail-signin-list');
@@ -1416,11 +1520,13 @@
       
       // Filter records for the selected user and date
       const dateStr = getDateString(userDetailDate);
+      const classToUse = currentSelectedClass || "No Class";
       
       // Add sign-out records
       const signOutRecords = userData.signOutRecords.filter(record => {
+        const recordClass = record.class || "No Class";
         return record.user === currentSelectedUser && 
-               record.class === currentSelectedClass &&
+               recordClass === classToUse &&
                (getDateString(record.date) === dateStr || 
                 (record.endDate && record.date <= userDetailDate && record.endDate >= userDetailDate));
       });
@@ -1470,8 +1576,9 @@
       
       // Add sign-in records
       const signInRecords = userData.signInRecords.filter(record => {
+        const recordClass = record.class || "No Class";
         return record.user === currentSelectedUser && 
-               record.class === currentSelectedClass && 
+               recordClass === classToUse && 
                getDateString(record.date) === dateStr;
       });
       
