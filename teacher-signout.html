@@ -438,10 +438,27 @@
 </head>
 <body>
   <div class="wrapper">
-    <div class="container">
+    <!-- Teacher Login Form -->
+    <div id="login-container" class="container">
       <a href="teacher-entry.html" class="back-button">Back to Teacher Options</a>
       
       <h1>Teacher Sign-Out</h1>
+      <div id="login-form" class="form-section">
+        <h2>Enter your name to continue</h2>
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <input type="text" id="teacher-name-input" placeholder="Your name" autocomplete="name">
+            <button id="teacher-login-button" class="primary-button" style="margin-top: 16px; width: 100%;">Continue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Main Teacher Sign-Out View (hidden until logged in) -->
+    <div id="teacher-view" class="container hidden">
+      <a href="teacher-entry.html" class="back-button">Back to Teacher Options</a>
+      
+      <h1>Teacher Sign-Out: <span id="current-teacher-name"></span></h1>
       
       <!-- Student Selection Form -->
       <div class="form-section">
@@ -513,12 +530,21 @@
       signInRecords: []
     };
     
+    let currentTeacher = "";
     let selectedStudent = null;
     let selectedClass = "all";
     let selectedDuration = "day";
     
     // Initialize the app
     async function init() {
+      // Set up teacher login
+      document.getElementById("teacher-login-button").addEventListener("click", teacherLogin);
+      document.getElementById("teacher-name-input").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+          teacherLogin();
+        }
+      });
+      
       try {
         // Load data from Firestore
         const docRef = db.collection('signOutApp').doc('userData');
@@ -546,7 +572,24 @@
           // Load students
           loadStudents();
           
-          // Set up real-time updates
+          // Teacher login function
+    function teacherLogin() {
+      const teacherName = document.getElementById("teacher-name-input").value.trim();
+      
+      if (teacherName) {
+        currentTeacher = teacherName;
+        document.getElementById("current-teacher-name").textContent = teacherName;
+        
+        // Hide login form and show teacher view
+        document.getElementById("login-container").classList.add("hidden");
+        document.getElementById("teacher-view").classList.remove("hidden");
+        
+        // Load students
+        loadStudents();
+      } else {
+        alert("Please enter your name to continue.");
+      }
+    }
           setupRealtimeUpdates();
           
           // Set default date and time to now
@@ -852,7 +895,8 @@
             date: nextDate,
             endDate: nextEndDate,
             signedBackIn: false,
-            isRecurring: true
+            isRecurring: true,
+            signedOutBy: currentTeacher // Add teacher who signed out the student
           };
           
           userData.signOutRecords.push(recurringRecord);
@@ -955,7 +999,7 @@
             userData = data;
             
             // Update the UI only if not in the middle of signing out
-            if (!selectedStudent) {
+            if (!selectedStudent && currentTeacher) {
               loadStudents();
             }
           }
