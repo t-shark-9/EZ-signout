@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency List - EZ Sign-Out</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Initialize Firebase -->
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEfc8pQ0UHiIm9XQSYbKgI2IhOuP1w0do",
+      authDomain: "ez-signout-b1f95.firebaseapp.com",
+      projectId: "ez-signout-b1f95",
+      storageBucket: "ez-signout-b1f95.firebasestorage.app",
+      messagingSenderId: "747672158416",
+      appId: "1:747672158416:web:dbf4f85c5acfb5c9785ed5"
+    };
+  
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+  <style>
+    /* Apple-inspired styling */
+    @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
+    
+    :root {
+      --primary-color: #0071e3; /* Apple blue */
+      --secondary-color: #34c759; /* Apple green */
+      --accent-color: #FF9500; /* Apple orange */
+      --danger-color: #ff3b30; /* Apple red */
+      --text-color: #1d1d1f; /* Apple dark gray */
+      --secondary-text-color: #86868b; /* Apple medium gray */
+      --background-color: #ffffff;
+      --background-secondary: #f5f5f7; /* Apple light gray */
+      --border-color: #d2d2d7;
+      --signout-color: #ff3b30; /* Apple red */
+      --signin-color: #34c759; /* Apple green */
+      --border-radius: 12px;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --button-radius: 20px;
+      --animation-duration: 0.3s;
+      --class-12k-color: #5ac8fa; /* Apple blue */
+      --class-13w-color: #af52de; /* Apple purple */
+      --class-13b-color: #ff9500; /* Apple orange */
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-color);
+      background-color: var(--background-color);
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+    }
+    
+    .wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      margin-bottom: 24px;
+    }
+    
+    h2 {
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: -0.012em;
+      margin-bottom: 16px;
+      margin-top: 32px;
+      padding: 12px 16px;
+      border-radius: var(--border-radius);
+      color: white;
+    }
+    
+    h2.class-12k {
+      background-color: var(--class-12k-color);
+    }
+    
+    h2.class-13w {
+      background-color: var(--class-13w-color);
+    }
+    
+    h2.class-13b {
+      background-color: var(--class-13b-color);
+    }
+    
+    /* Container styling */
+    .container {
+      background-color: var(--background-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 30px;
+      margin-bottom: 20px;
+      width: 100%;
+      position: relative;
+    }
+    
+    /* Navigation buttons */
+    .nav-buttons {
+      display: flex;
+      margin-bottom: 30px;
+      gap: 12px;
+    }
+    
+    .nav-button {
+      background-color: var(--background-secondary);
+      color: var(--text-color);
+      border: none;
+      border-radius: var(--button-radius);
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--animation-duration);
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    
+    .nav-button:hover {
+      background-color: #eaeaea;
+      transform: translateY(-1px);
+    }
+    
+    .nav-button::before {
+      content: '←';
+      margin-right: 8px;
+    }
+    
+    /* Student list styling */
+    .student-list {
+      list-style-type: none;
+      margin-bottom: 30px;
+    }
+    
+    .student-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-radius: var(--border-radius);
+      background-color: var(--background-secondary);
+      margin-bottom: 8px;
+      transition: all var(--animation-duration);
+    }
+    
+    .student-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .student-name {
+      font-weight: 500;
+    }
+    
+    .status {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .signed-in {
+      background-color: var(--signin-color);
+      color: white;
+    }
+    
+    .signed-out {
+      background-color: var(--signout-color);
+      color: white;
+    }
+    
+    /* Print-friendly styles */
+    @media print {
+      .nav-buttons {
+        display: none;
+      }
+      
+      body {
+        font-size: 12px;
+      }
+      
+      .container {
+        box-shadow: none;
+        padding: 0;
+      }
+      
+      .student-item {
+        margin-bottom: 4px;
+        padding: 8px;
+        page-break-inside: avoid;
+      }
+      
+      h2 {
+        page-break-before: always;
+        page-break-after: avoid;
+      }
+      
+      h2:first-of-type {
+        page-break-before: avoid;
+      }
+    }
+    
+    /* Refresh button */
+    .refresh-button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--button-radius);
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--animation-duration);
+      display: inline-flex;
+      align-items: center;
+      margin-left: auto;
+    }
+    
+    .refresh-button:hover {
+      background-color: #0077ed;
+      transform: translateY(-1px);
+    }
+    
+    .refresh-button::before {
+      content: '↻';
+      margin-right: 8px;
+    }
+    
+    .print-button {
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      border-radius: var(--button-radius);
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--animation-duration);
+      display: inline-flex;
+      align-items: center;
+    }
+    
+    .print-button:hover {
+      background-color: #30b350;
+      transform: translateY(-1px);
+    }
+    
+    .print-button::before {
+      content: '🖨️';
+      margin-right: 8px;
+    }
+    
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 30px;
+    }
+    
+    /* Responsive design */
+    @media (max-width: 767px) {
+      .wrapper {
+        padding: 16px;
+      }
+      
+      .container {
+        padding: 20px;
+      }
+      
+      h1 {
+        font-size: 28px;
+      }
+      
+      .actions {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .refresh-button, .print-button {
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="nav-buttons">
+        <a href="teacher-entry.html" class="nav-button">Back to Teacher Options</a>
+      </div>
+      
+      <h1>Emergency Student List</h1>
+      
+      <div class="actions">
+        <button class="print-button" onclick="window.print()">Print List</button>
+        <button class="refresh-button" onclick="loadStudentData()">Refresh Data</button>
+      </div>
+      
+      <!-- Class 12K Section -->
+      <h2 class="class-12k">Class 12K</h2>
+      <ul id="class-12k-list" class="student-list">
+        <li class="student-item">
+          <div class="student-name">Loading students...</div>
+        </li>
+      </ul>
+      
+      <!-- Class 13W Section -->
+      <h2 class="class-13w">Class 13W</h2>
+      <ul id="class-13w-list" class="student-list">
+        <li class="student-item">
+          <div class="student-name">Loading students...</div>
+        </li>
+      </ul>
+      
+      <!-- Class 13B Section -->
+      <h2 class="class-13b">Class 13B</h2>
+      <ul id="class-13b-list" class="student-list">
+        <li class="student-item">
+          <div class="student-name">Loading students...</div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Data storage
+    let userData = {
+      signOutRecords: [],
+      signInRecords: []
+    };
+    
+    // Initialize the app
+    async function init() {
+      try {
+        // Load data from Firestore
+        const docRef = db.collection('signOutApp').doc('userData');
+        const doc = await docRef.get();
+        
+        if (doc.exists) {
+          const data = doc.data();
+          
+          // Convert string dates back to Date objects
+          if (data.signOutRecords) {
+            data.signOutRecords.forEach(record => {
+              record.date = new Date(record.date);
+              if (record.endDate) record.endDate = new Date(record.endDate);
+            });
+          }
+          
+          if (data.signInRecords) {
+            data.signInRecords.forEach(record => {
+              record.date = new Date(record.date);
+            });
+          }
+          
+          userData = data;
+          
+          // Load student data
+          loadStudentData();
+          
+          // Set up real-time updates
+          setupRealtimeUpdates();
+        } else {
+          // Initialize with empty data if document doesn't exist
+          userData = {
+            signOutRecords: [],
+            signInRecords: []
+          };
+          
+          // Load student data (which will be empty)
+          loadStudentData();
+        }
+      } catch (error) {
+        console.error("Error loading data:", error);
+        
+        // Fallback to empty data
+        userData = {
+          signOutRecords: [],
+          signInRecords: []
+        };
+        
+        // Load student data (which will be empty)
+        loadStudentData();
+      }
+    }
+    
+    // Load student data and populate lists
+    function loadStudentData() {
+      // Clear current lists
+      document.getElementById('class-12k-list').innerHTML = '';
+      document.getElementById('class-13w-list').innerHTML = '';
+      document.getElementById('class-13b-list').innerHTML = '';
+      
+      // Get all unique students with their classes
+      const students = {};
+      
+      // Add students from sign-out records
+      userData.signOutRecords.forEach(record => {
+        if (record.user && record.class) {
+          if (!students[record.user]) {
+            students[record.user] = {
+              name: record.user,
+              class: record.class
+            };
+          }
+        }
+      });
+      
+      // Add students from sign-in records
+      userData.signInRecords.forEach(record => {
+        if (record.user && record.class) {
+          if (!students[record.user]) {
+            students[record.user] = {
+              name: record.user,
+              class: record.class
+            };
+          }
+        }
+      });
+      
+      // Group students by class
+      const studentsByClass = {
+        '12K': [],
+        '13W': [],
+        '13B': []
+      };
+      
+      // Check current sign-out status for each student
+      const now = new Date();
+      
+      Object.values(students).forEach(student => {
+        // Check if student is currently signed out
+        const isSignedOut = userData.signOutRecords.some(record => 
+          record.user === student.name && 
+          record.date <= now && 
+          (!record.endDate || record.endDate >= now) && 
+          !record.signedBackIn
+        );
+        
+        student.isSignedOut = isSignedOut;
+        
+        // Add to appropriate class array
+        if (student.class === '12K') {
+          studentsByClass['12K'].push(student);
+        } else if (student.class === '13W') {
+          studentsByClass['13W'].push(student);
+        } else if (student.class === '13B') {
+          studentsByClass['13B'].push(student);
+        }
+      });
+      
+      // Sort each class alphabetically
+      Object.keys(studentsByClass).forEach(className => {
+        studentsByClass[className].sort((a, b) => a.name.localeCompare(b.name));
+      });
+      
+      // Populate class lists
+      populateClassList('class-12k-list', studentsByClass['12K']);
+      populateClassList('class-13w-list', studentsByClass['13W']);
+      populateClassList('class-13b-list', studentsByClass['13B']);
+    }
+    
+    // Populate a class list with students
+    function populateClassList(listId, students) {
+      const list = document.getElementById(listId);
+      
+      if (students.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'student-item';
+        li.innerHTML = `<div class="student-name">No students found</div>`;
+        list.appendChild(li);
+        return;
+      }
+      
+      students.forEach(student => {
+        const li = document.createElement('li');
+        li.className = 'student-item';
+        
+        const statusClass = student.isSignedOut ? 'signed-out' : 'signed-in';
+        const statusText = student.isSignedOut ? 'Signed Out' : 'Present';
+        
+        li.innerHTML = `
+          <div class="student-name">${student.name}</div>
+          <div class="status ${statusClass}">${statusText}</div>
+        `;
+        
+        list.appendChild(li);
+      });
+    }
+    
+    // Set up real-time updates
+    function setupRealtimeUpdates() {
+      db.collection('signOutApp').doc('userData')
+        .onSnapshot((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            
+            // Convert string dates back to Date objects
+            if (data.signOutRecords) {
+              data.signOutRecords.forEach(record => {
+                record.date = new Date(record.date);
+                if (record.endDate) record.endDate = new Date(record.endDate);
+              });
+            }
+            
+            if (data.signInRecords) {
+              data.signInRecords.forEach(record => {
+                record.date = new Date(record.date);
+              });
+            }
+            
+            // Update our userData with the new data
+            userData = data;
+            
+            // Update the lists
+            loadStudentData();
+          }
+        });
+    }
+    
+    // Initialize on page load
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
