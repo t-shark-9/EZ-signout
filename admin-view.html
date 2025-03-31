@@ -1,4 +1,294 @@
-<!DOCTYPE html>
+// Update User All Records
+    function updateUserAllRecords() {
+      if (!currentSelectedUser || !currentSelectedClass) return;
+      
+      const allSignOutsList = document.getElementById('user-all-signouts');
+      const allSignInsList = document.getElementById('user-all-signins');
+      
+      // Clear previous entries
+      allSignOutsList.innerHTML = '';
+      allSignInsList.innerHTML = '';
+      
+      // Filter all records for the selected user and class
+      const userSignOuts = userData.signOutRecords.filter(record => 
+        record.user === currentSelectedUser && record.class === currentSelectedClass
+      );
+      
+      const userSignIns = userData.signInRecords.filter(record => 
+        record.user === currentSelectedUser && record.class === currentSelectedClass
+      );
+      
+      // Add all sign-out records
+      if (userSignOuts.length > 0) {
+        userSignOuts.sort((a, b) => b.date - a.date); // Sort by date descending
+        
+        userSignOuts.forEach((record) => {
+          const li = document.createElement('li');
+          li.className = 'sign-out';
+          
+          const contentDiv = document.createElement('div');
+          
+          let endDateText = '';
+          if (record.endDate) {
+            if (getDateString(record.date) === getDateString(record.endDate)) {
+              endDateText = ' until end of day';
+            } else {
+              endDateText = ` until ${formatDate(record.endDate)}`;
+            }
+          }
+          
+          if (record.isRecurring) {
+            endDateText += ' (Weekly)';
+          }
+          
+          const status = record.signedBackIn ? ' (Signed back in)' : '';
+          
+          contentDiv.innerHTML = `${formatDate(record.date)} at ${formatTime(record.date)}${endDateText}${status}`;
+          
+          // Add reason if exists
+          if (record.reason) {
+            const reasonDiv = document.createElement('div');
+            reasonDiv.className = 'reason-tag';
+            reasonDiv.textContent = `Reason: ${record.reason}`;
+            contentDiv.appendChild(reasonDiv);
+          }
+          
+          li.appendChild(contentDiv);
+          allSignOutsList.appendChild(li);
+        });
+      } else {
+        const li = document.createElement('li');
+        li.textContent = 'No sign-out records found.';
+        allSignOutsList.appendChild(li);
+      }
+      
+      // Add all sign-in records
+      if (userSignIns.length > 0) {
+        userSignIns.sort((a, b) => b.date - a.date); // Sort by date descending
+        
+        userSignIns.forEach(record => {
+          const li = document.createElement('li');
+          li.className = 'sign-in';
+          li.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}`;
+          allSignInsList.appendChild(li);
+        });
+      } else {
+        const li = document.createElement('li');
+        li.textContent = 'No sign-in records found.';
+        allSignInsList.appendChild(li);
+      }
+    }
+    
+    // Change Stats Month
+    function changeStatsMonth(offset) {
+      if (offset === 0) {
+        statsMonth = new Date();
+      } else {
+        statsMonth = new Date(statsMonth);
+        statsMonth.setMonth(statsMonth.getMonth() + offset);
+      }
+      document.getElementById('stats-current-month').textContent = formatMonth(statsMonth);
+      // Here you would update any month-specific charts or visualizations
+    }
+    
+    // Update Stats
+    function updateStats() {
+      const now = new Date();
+      
+      // Filter function for class selection
+      const classFilter = (record) => {
+        if (selectedClass === "all") return true;
+        return record.class === selectedClass;
+      };
+      
+      // Calculate total users
+      const uniqueUsers = new Set();
+      userData.signOutRecords.filter(classFilter).forEach(record => {
+        uniqueUsers.add(`${record.user}_${record.class || ''}`);
+      });
+      userData.signInRecords.filter(classFilter).forEach(record => {
+        uniqueUsers.add(`${record.user}_${record.class || ''}`);
+      });
+      
+      // Calculate total sign-outs
+      const totalSignOuts = userData.signOutRecords.filter(classFilter).length;
+      
+      // Calculate currently signed out
+      const currentlySignedOut = userData.signOutRecords.filter(record => 
+        classFilter(record) &&
+        record.date <= now && 
+        (!record.endDate || record.endDate >= now) && 
+        !record.signedBackIn
+      ).length;
+      
+      // Calculate average sign-outs per day
+      let avgSignOuts = 0;
+      const filteredSignOuts = userData.signOutRecords.filter(classFilter);
+      
+      if (filteredSignOuts.length > 0) {
+        // Get the earliest and latest dates
+        const dates = filteredSignOuts.map(record => record.date.getTime());
+        const earliestDate = new Date(Math.min(...dates));
+        const latestDate = new Date(Math.max(...dates));
+        
+        // Calculate days between
+        const daysDiff = Math.max(1, Math.ceil((latestDate - earliestDate) / (1000 * 60 * 60 * 24)));
+        
+        avgSignOuts = (filteredSignOuts.length / daysDiff).toFixed(1);
+      }
+      
+      // Update the DOM
+      document.getElementById('total-users').textContent = uniqueUsers.size;
+      document.getElementById('total-signouts').textContent = totalSignOuts;
+      document.getElementById('current-signouts').textContent = currentlySignedOut;
+      document.getElementById('avg-signouts').textContent = avgSignOuts;
+    }
+    
+    // Confirm Delete User
+    function confirmDeleteUser(username, userClass) {
+      if (confirm(`Are you sure you want to delete all data for ${username} (${userClass})? This action cannot be undone.`)) {
+        deleteUserData(username, userClass);
+      }
+    }
+    
+    // Delete User Data
+    function deleteUserData(username, userClass) {
+      if (!username || !userClass) return;
+      
+      // Remove all user's records with matching class
+      userData.signOutRecords = userData.signOutRecords.filter(record => 
+        !(record.user === username && record.class === userClass)
+      );
+      
+      userData.signInRecords = userData.signInRecords.filter(record => 
+        !(record.user === username && record.class === userClass)
+      );
+      
+      // Save to Firebase
+      saveData();
+      
+      // If viewing user details, go back to list
+      if (currentSelectedUser === username && currentSelectedClass === userClass) {
+        backToUserList();
+      }
+      
+      // Update UI
+      populateUserList();
+      updateStats();
+      
+      alert(`All data for ${username} (${userClass}) has been deleted.`);
+    }
+    
+    // Confirm Delete User Data from details view
+    function confirmDeleteUserData() {
+      if (currentSelectedUser && currentSelectedClass && 
+          confirm(`Are you sure you want to delete all data for ${currentSelectedUser} (${currentSelectedClass})? This action cannot be undone.`)) {
+        deleteUserData(currentSelectedUser, currentSelectedClass);
+      }
+    }
+    
+    // Confirm Clear All Data
+    function confirmClearAllData() {
+      if (confirm("WARNING: Are you sure you want to delete ALL data from the system? This will remove all users and records. This action cannot be undone.")) {
+        if (confirm("This is your final warning. All data will be permanently deleted. Continue?")) {
+          clearAllData();
+        }
+      }
+    }
+    
+    // Clear All Data
+    function clearAllData() {
+      // Reset data
+      userData = {
+        signOutRecords: [],
+        signInRecords: []
+      };
+      
+      // Save to Firebase
+      saveData();
+      
+      // Update UI
+      populateUserList();
+      updateStats();
+      
+      // Go back to users tab
+      showTab('users');
+      
+      alert("All system data has been deleted.");
+    }
+    
+    // Export All Data
+    function exportAllData() {
+      const dataStr = JSON.stringify(userData, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      
+      const exportFileName = `ez-signout-export-${new Date().toISOString().split('T')[0]}.json`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileName);
+      linkElement.click();
+    }
+    
+    // Save data to Firestore
+    function saveData() {
+      try {
+        // Create a serializable copy
+        const serializableData = JSON.parse(JSON.stringify(userData));
+        
+        // Save to Firestore
+        db.collection('signOutApp').doc('userData').set(serializableData);
+      } catch (error) {
+        console.error("Error saving data:", error);
+      }
+    }
+    
+    // Set up real-time updates
+    function setupRealtimeUpdates() {
+      db.collection('signOutApp').doc('userData')
+        .onSnapshot((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            
+            // Convert string dates back to Date objects
+            if (data.signOutRecords) {
+              data.signOutRecords.forEach(record => {
+                record.date = new Date(record.date);
+                if (record.endDate) record.endDate = new Date(record.endDate);
+              });
+            }
+            
+            if (data.signInRecords) {
+              data.signInRecords.forEach(record => {
+                record.date = new Date(record.date);
+              });
+            }
+            
+            // Update our userData with the new data
+            userData = data;
+            
+            // Update the UI
+            populateUserList();
+            updateStats();
+            
+            // Update user details if viewing
+            if (currentSelectedUser && currentSelectedClass) {
+              updateUserStats(currentSelectedUser, currentSelectedClass);
+              if (userDetailView === 'calendar') {
+                updateUserDetailCalendar();
+              } else {
+                updateUserAllRecords();
+              }
+            }
+          }
+        });
+    }
+    
+    // Initialize on page load
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html><!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -158,6 +448,40 @@
       background-color: #ff453a;
     }
     
+    /* Class indicator badge */
+    .class-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: white;
+      margin-left: 6px;
+    }
+    
+    .class-12K {
+      background-color: #34c759; /* Green */
+    }
+    
+    .class-13W {
+      background-color: #0071e3; /* Blue */
+    }
+    
+    .class-13B {
+      background-color: #ff9500; /* Orange */
+    }
+    
+    /* Reason tag */
+    .reason-tag {
+      display: block;
+      background-color: rgba(0, 113, 227, 0.1);
+      color: var(--primary-color);
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+      max-width: fit-content;
+    }
+    
     /* Navigation tabs */
     .nav-tabs {
       display: flex;
@@ -192,6 +516,37 @@
       background-color: var(--primary-color);
     }
     
+    /* Class filter */
+    .class-filter {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .class-filter label {
+      font-weight: 500;
+      color: var(--text-color);
+      font-size: 15px;
+    }
+    
+    .class-filter select {
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 8px 16px;
+      font-size: 15px;
+      border-radius: var(--button-radius);
+      border: 1px solid var(--border-color);
+      outline: none;
+      transition: border-color var(--animation-duration);
+      background-color: var(--background-secondary);
+    }
+    
+    .class-filter select:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+    }
+    
     /* User list */
     .user-list {
       list-style-type: none;
@@ -222,6 +577,8 @@
       font-weight: 500;
       font-size: 18px;
       margin-bottom: 4px;
+      display: flex;
+      align-items: center;
     }
     
     .user-stats {
@@ -349,6 +706,30 @@
       font-size: 14px;
     }
     
+    /* Calendar event items */
+    .calendar-event {
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: white;
+    }
+    
+    .event-12K {
+      background-color: #34c759;
+    }
+    
+    .event-13W {
+      background-color: #0071e3;
+    }
+    
+    .event-13B {
+      background-color: #ff9500;
+    }
+    
     /* Records */
     ul {
       list-style-type: none;
@@ -459,6 +840,28 @@
       box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
     }
     
+    /* Class indicator legend */
+    .class-legend {
+      display: flex;
+      gap: 16px;
+      margin: 16px 0;
+      flex-wrap: wrap;
+    }
+    
+    .class-legend-item {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+    }
+    
+    .class-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    
     /* Utilities */
     .hidden {
       display: none !important;
@@ -517,77 +920,19 @@
         <button id="settings-tab" onclick="showTab('settings')">Settings</button>
       </div>
       
+      <!-- Class Filter -->
+      <div class="class-filter">
+        <label for="class-select">Filter by Class:</label>
+        <select id="class-select" onchange="filterByClass()">
+          <option value="all">All Classes</option>
+          <option value="12K">12K</option>
+          <option value="13W">13W</option>
+          <option value="13B">13B</option>
+        </select>
+      </div>
+      
       <!-- Stats Section -->
       <div id="stats-content" class="tab-content hidden">
-        <div class="stats-section">
-          <div class="stat-card">
-            <div class="stat-label">Total Users</div>
-            <div class="stat-value" id="total-users">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Total Sign-Outs</div>
-            <div class="stat-value" id="total-signouts">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Currently Signed Out</div>
-            <div class="stat-value" id="current-signouts">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Avg. Sign-Outs Per Day</div>
-            <div class="stat-value" id="avg-signouts">0</div>
-          </div>
-        </div>
-        
-        <h2>Activity Over Time</h2>
-        <div class="calendar-nav">
-          <button onclick="changeStatsMonth(-1)">Previous Month</button>
-          <div class="current-date" id="stats-current-month"></div>
-          <button onclick="changeStatsMonth(0)">Current Month</button>
-          <button onclick="changeStatsMonth(1)">Next Month</button>
-        </div>
-        
-        <!-- Activity chart would go here -->
-        <div id="activity-chart" style="height: 300px; background-color: var(--background-secondary); border-radius: var(--border-radius); display: flex; align-items: center; justify-content: center;">
-          Activity Chart Placeholder
-        </div>
-      </div>
-      
-      <!-- Settings Section -->
-      <div id="settings-content" class="tab-content hidden">
-        <h2>Admin Settings</h2>
-        
-        <div style="margin-top: 20px;">
-          <h3>Data Management</h3>
-          <button class="danger-button" onclick="confirmClearAllData()">Clear All System Data</button>
-          <p style="margin-top: 10px; color: var(--secondary-text-color);">Warning: This will delete all users and records from the system. This action cannot be undone.</p>
-        </div>
-        
-        <div style="margin-top: 30px;">
-          <h3>Export Data</h3>
-          <button class="primary-button" onclick="exportAllData()">Export All Data</button>
-          <p style="margin-top: 10px; color: var(--secondary-text-color);">Download a backup of all system data in JSON format.</p>
-        </div>
-      </div>
-      
-      <!-- Users List Section -->
-      <div id="users-content" class="tab-content">
-        <!-- Search -->
-        <div class="search-container">
-          <input type="text" id="user-search" class="search-input" placeholder="Search users..." onkeyup="searchUsers()">
-        </div>
-        
-        <!-- User List -->
-        <ul id="user-list" class="user-list">
-          <!-- User items will be dynamically added here -->
-        </ul>
-      </div>
-      
-      <!-- User Details View -->
-      <div id="user-details" class="user-details-container hidden">
-        <button class="back-button" onclick="backToUserList()">Back to Users</button>
-        
-        <h2 id="user-detail-name">User Name</h2>
-        
         <div class="stats-section">
           <div class="stat-card">
             <div class="stat-label">Total Sign-Outs</div>
@@ -657,9 +1002,11 @@
     };
     
     let currentSelectedUser = "";
+    let currentSelectedClass = "";
     let userDetailDate = new Date();
     let statsMonth = new Date();
     let userDetailView = "calendar";
+    let selectedClass = "all"; // Default to showing all classes
     
     // Initialize the app
     async function init() {
@@ -756,6 +1103,13 @@
       return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
     }
     
+    // Filter by class
+    function filterByClass() {
+      selectedClass = document.getElementById("class-select").value;
+      populateUserList();
+      updateStats();
+    }
+    
     // Show Tab
     function showTab(tabName) {
       // Hide all tab contents
@@ -783,60 +1137,150 @@
       const userList = document.getElementById('user-list');
       userList.innerHTML = '';
       
-      // Get unique users
-      const users = new Set();
+      // Create a map to store unique user+class combinations
+      const userClassMap = new Map();
+      
+      // Process sign-out records
       userData.signOutRecords.forEach(record => {
-        if (record.user) users.add(record.user);
+        if (record.user && record.class) {
+          // Apply class filter if selected
+          if (selectedClass !== "all" && record.class !== selectedClass) {
+            return;
+          }
+          
+          const key = `${record.user}_${record.class}`;
+          if (!userClassMap.has(key)) {
+            userClassMap.set(key, {
+              user: record.user,
+              class: record.class,
+              signOuts: 0,
+              signIns: 0,
+              lastActivity: null
+            });
+          }
+          
+          const userInfo = userClassMap.get(key);
+          userInfo.signOuts++;
+          
+          // Update last activity
+          const activityDate = record.date.getTime();
+          if (!userInfo.lastActivity || activityDate > userInfo.lastActivity) {
+            userInfo.lastActivity = activityDate;
+          }
+        }
       });
+      
+      // Process sign-in records
       userData.signInRecords.forEach(record => {
-        if (record.user) users.add(record.user);
+        if (record.user && record.class) {
+          // Apply class filter if selected
+          if (selectedClass !== "all" && record.class !== selectedClass) {
+            return;
+          }
+          
+          const key = `${record.user}_${record.class}`;
+          if (!userClassMap.has(key)) {
+            userClassMap.set(key, {
+              user: record.user,
+              class: record.class,
+              signOuts: 0,
+              signIns: 0,
+              lastActivity: null
+            });
+          }
+          
+          const userInfo = userClassMap.get(key);
+          userInfo.signIns++;
+          
+          // Update last activity
+          const activityDate = record.date.getTime();
+          if (!userInfo.lastActivity || activityDate > userInfo.lastActivity) {
+            userInfo.lastActivity = activityDate;
+          }
+        }
       });
       
-      // Convert Set to Array and sort alphabetically
-      const usersArray = Array.from(users).sort();
+      // Convert Map to Array and sort alphabetically first by class, then by username
+      const userClassArray = Array.from(userClassMap.values()).sort((a, b) => {
+        if (a.class !== b.class) {
+          return a.class.localeCompare(b.class);
+        }
+        return a.user.localeCompare(b.user);
+      });
       
-      if (usersArray.length === 0) {
+      if (userClassArray.length === 0) {
         userList.innerHTML = '<li class="user-item">No users found.</li>';
         return;
       }
       
-      // Create list items for each user
-      usersArray.forEach(username => {
-        const userSignOuts = userData.signOutRecords.filter(record => record.user === username);
-        const userSignIns = userData.signInRecords.filter(record => record.user === username);
-        
+      // Create list items for each user-class combination
+      userClassArray.forEach(userInfo => {
         // Check if user is currently signed out
         const now = new Date();
-        const isSignedOut = userSignOuts.some(record => 
+        const isSignedOut = userData.signOutRecords.some(record => 
+          record.user === userInfo.user && 
+          record.class === userInfo.class &&
           record.date <= now && 
           (!record.endDate || record.endDate >= now) && 
           !record.signedBackIn
         );
         
-        // Get last activity date
-        let lastActivity = null;
-        const allUserRecords = [...userSignOuts, ...userSignIns];
-        if (allUserRecords.length > 0) {
-          lastActivity = new Date(Math.max(...allUserRecords.map(record => record.date.getTime())));
-        }
-        
         // Create user item
         const li = document.createElement('li');
         li.className = 'user-item';
-        li.innerHTML = `
-          <div class="user-info">
-            <div class="user-name">${username}</div>
-            <div class="user-stats">
-              ${userSignOuts.length} sign-outs, ${userSignIns.length} sign-ins
-              ${lastActivity ? `· Last activity: ${formatDate(lastActivity)}` : ''}
-              ${isSignedOut ? '<span style="color: var(--signout-color); font-weight: 500;">· Currently signed out</span>' : ''}
-            </div>
-          </div>
-          <div class="user-actions">
-            <button class="action-button primary-button" onclick="viewUserDetails('${username}')">View Details</button>
-            <button class="action-button danger-button" onclick="confirmDeleteUser('${username}')">Delete</button>
-          </div>
-        `;
+        
+        const userNameDiv = document.createElement('div');
+        userNameDiv.className = 'user-name';
+        userNameDiv.textContent = userInfo.user;
+        
+        // Add class badge
+        const classBadge = document.createElement('span');
+        classBadge.className = `class-badge class-${userInfo.class}`;
+        classBadge.textContent = userInfo.class;
+        userNameDiv.appendChild(classBadge);
+        
+        const userStatsDiv = document.createElement('div');
+        userStatsDiv.className = 'user-stats';
+        
+        let statsText = `${userInfo.signOuts} sign-outs, ${userInfo.signIns} sign-ins`;
+        if (userInfo.lastActivity) {
+          const lastActivityDate = new Date(userInfo.lastActivity);
+          statsText += ` · Last activity: ${formatDate(lastActivityDate)}`;
+        }
+        
+        if (isSignedOut) {
+          statsText += ' · <span style="color: var(--signout-color); font-weight: 500;">Currently signed out</span>';
+        }
+        
+        userStatsDiv.innerHTML = statsText;
+        
+        const userInfoDiv = document.createElement('div');
+        userInfoDiv.className = 'user-info';
+        userInfoDiv.appendChild(userNameDiv);
+        userInfoDiv.appendChild(userStatsDiv);
+        
+        const userActionsDiv = document.createElement('div');
+        userActionsDiv.className = 'user-actions';
+        
+        const viewDetailsBtn = document.createElement('button');
+        viewDetailsBtn.className = 'action-button primary-button';
+        viewDetailsBtn.textContent = 'View Details';
+        viewDetailsBtn.onclick = function() {
+          viewUserDetails(userInfo.user, userInfo.class);
+        };
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'action-button danger-button';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.onclick = function() {
+          confirmDeleteUser(userInfo.user, userInfo.class);
+        };
+        
+        userActionsDiv.appendChild(viewDetailsBtn);
+        userActionsDiv.appendChild(deleteBtn);
+        
+        li.appendChild(userInfoDiv);
+        li.appendChild(userActionsDiv);
         userList.appendChild(li);
       });
     }
@@ -860,18 +1304,20 @@
     }
     
     // View User Details
-    function viewUserDetails(username) {
+    function viewUserDetails(username, userClass) {
       currentSelectedUser = username;
+      currentSelectedClass = userClass;
       
       // Hide user list and show user details
       document.getElementById('users-content').classList.add('hidden');
       document.getElementById('user-details').classList.remove('hidden');
       
-      // Set user name
+      // Set user name and class
       document.getElementById('user-detail-name').textContent = username;
+      document.getElementById('user-detail-class').textContent = `Class: ${userClass}`;
       
       // Update user statistics
-      updateUserStats(username);
+      updateUserStats(username, userClass);
       
       // Set default view
       setUserDetailView('calendar');
@@ -882,9 +1328,10 @@
     }
     
     // Update User Statistics
-    function updateUserStats(username) {
-      const userSignOuts = userData.signOutRecords.filter(record => record.user === username);
-      const userSignIns = userData.signInRecords.filter(record => record.user === username);
+    function updateUserStats(username, userClass) {
+      const userSignOuts = userData.signOutRecords.filter(record => 
+        record.user === username && record.class === userClass
+      );
       
       // Update sign-out count
       document.getElementById('user-total-signouts').textContent = userSignOuts.length;
@@ -898,10 +1345,15 @@
       );
       
       // Update sign-out status
-      document.getElementById('user-status').textContent = isSignedOut ? 'Signed Out' : 'Signed In';
-      document.getElementById('user-status').style.color = isSignedOut ? 'var(--signout-color)' : 'var(--signin-color)';
+      const statusElement = document.getElementById('user-status');
+      statusElement.textContent = isSignedOut ? 'Signed Out' : 'Signed In';
+      statusElement.style.color = isSignedOut ? 'var(--signout-color)' : 'var(--signin-color)';
       
       // Get last activity date
+      const userSignIns = userData.signInRecords.filter(record => 
+        record.user === username && record.class === userClass
+      );
+      
       let lastActivity = null;
       const allUserRecords = [...userSignOuts, ...userSignIns];
       if (allUserRecords.length > 0) {
@@ -917,6 +1369,7 @@
       document.getElementById('users-content').classList.remove('hidden');
       document.getElementById('user-details').classList.add('hidden');
       currentSelectedUser = "";
+      currentSelectedClass = "";
     }
     
     // Set User Detail View (Calendar or Records)
@@ -952,7 +1405,7 @@
     
     // Update User Detail Calendar
     function updateUserDetailCalendar() {
-      if (!currentSelectedUser) return;
+      if (!currentSelectedUser || !currentSelectedClass) return;
       
       const signOutList = document.getElementById('user-detail-signout-list');
       const signInList = document.getElementById('user-detail-signin-list');
@@ -967,6 +1420,7 @@
       // Add sign-out records
       const signOutRecords = userData.signOutRecords.filter(record => {
         return record.user === currentSelectedUser && 
+               record.class === currentSelectedClass &&
                (getDateString(record.date) === dateStr || 
                 (record.endDate && record.date <= userDetailDate && record.endDate >= userDetailDate));
       });
@@ -977,6 +1431,8 @@
         signOutRecords.forEach((record) => {
           const li = document.createElement('li');
           li.className = 'sign-out';
+          
+          const contentDiv = document.createElement('div');
           
           let endDateText = '';
           if (record.endDate) {
@@ -993,7 +1449,17 @@
           
           const status = record.signedBackIn ? ' (Signed back in)' : '';
           
-          li.textContent = `Signed out at ${formatTime(record.date)}${endDateText}${status}`;
+          contentDiv.innerHTML = `Signed out at ${formatTime(record.date)}${endDateText}${status}`;
+          
+          // Add reason if exists
+          if (record.reason) {
+            const reasonDiv = document.createElement('div');
+            reasonDiv.className = 'reason-tag';
+            reasonDiv.textContent = `Reason: ${record.reason}`;
+            contentDiv.appendChild(reasonDiv);
+          }
+          
+          li.appendChild(contentDiv);
           signOutList.appendChild(li);
         });
       } else {
@@ -1004,7 +1470,9 @@
       
       // Add sign-in records
       const signInRecords = userData.signInRecords.filter(record => {
-        return record.user === currentSelectedUser && getDateString(record.date) === dateStr;
+        return record.user === currentSelectedUser && 
+               record.class === currentSelectedClass && 
+               getDateString(record.date) === dateStr;
       });
       
       if (signInRecords.length > 0) {
@@ -1021,264 +1489,87 @@
         li.textContent = 'No sign-in records for this day.';
         signInList.appendChild(li);
       }
-    }
-    
-    // Update User All Records
-    function updateUserAllRecords() {
-      if (!currentSelectedUser) return;
-      
-      const allSignOutsList = document.getElementById('user-all-signouts');
-      const allSignInsList = document.getElementById('user-all-signins');
-      
-      // Clear previous entries
-      allSignOutsList.innerHTML = '';
-      allSignInsList.innerHTML = '';
-      
-      // Filter all records for the selected user
-      const userSignOuts = userData.signOutRecords.filter(record => record.user === currentSelectedUser);
-      const userSignIns = userData.signInRecords.filter(record => record.user === currentSelectedUser);
-      
-      // Add all sign-out records
-      if (userSignOuts.length > 0) {
-        userSignOuts.sort((a, b) => b.date - a.date); // Sort by date descending
+    } class="stat-label">Total Users</div>
+            <div class="stat-value" id="total-users">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Sign-Outs</div>
+            <div class="stat-value" id="total-signouts">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Currently Signed Out</div>
+            <div class="stat-value" id="current-signouts">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg. Sign-Outs Per Day</div>
+            <div class="stat-value" id="avg-signouts">0</div>
+          </div>
+        </div>
         
-        userSignOuts.forEach((record) => {
-          const li = document.createElement('li');
-          li.className = 'sign-out';
-          
-          let endDateText = '';
-          if (record.endDate) {
-            if (getDateString(record.date) === getDateString(record.endDate)) {
-              endDateText = ' until end of day';
-            } else {
-              endDateText = ` until ${formatDate(record.endDate)}`;
-            }
-          }
-          
-          if (record.isRecurring) {
-            endDateText += ' (Weekly)';
-          }
-          
-          const status = record.signedBackIn ? ' (Signed back in)' : '';
-          
-          li.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}${endDateText}${status}`;
-          allSignOutsList.appendChild(li);
-        });
-      } else {
-        const li = document.createElement('li');
-        li.textContent = 'No sign-out records found.';
-        allSignOutsList.appendChild(li);
-      }
-      
-      // Add all sign-in records
-      if (userSignIns.length > 0) {
-        userSignIns.sort((a, b) => b.date - a.date); // Sort by date descending
+        <h2>Activity Over Time</h2>
+        <div class="calendar-nav">
+          <button onclick="changeStatsMonth(-1)">Previous Month</button>
+          <div class="current-date" id="stats-current-month"></div>
+          <button onclick="changeStatsMonth(0)">Current Month</button>
+          <button onclick="changeStatsMonth(1)">Next Month</button>
+        </div>
         
-        userSignIns.forEach(record => {
-          const li = document.createElement('li');
-          li.className = 'sign-in';
-          li.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}`;
-          allSignInsList.appendChild(li);
-        });
-      } else {
-        const li = document.createElement('li');
-        li.textContent = 'No sign-in records found.';
-        allSignInsList.appendChild(li);
-      }
-    }
-    
-    // Change Stats Month
-    function changeStatsMonth(offset) {
-      if (offset === 0) {
-        statsMonth = new Date();
-      } else {
-        statsMonth = new Date(statsMonth);
-        statsMonth.setMonth(statsMonth.getMonth() + offset);
-      }
-      document.getElementById('stats-current-month').textContent = formatMonth(statsMonth);
-      // Here you would update any month-specific charts or visualizations
-    }
-    
-    // Update Stats
-    function updateStats() {
-      const now = new Date();
-      
-      // Calculate total users
-      const uniqueUsers = new Set();
-      userData.signOutRecords.forEach(record => {
-        if (record.user) uniqueUsers.add(record.user);
-      });
-      userData.signInRecords.forEach(record => {
-        if (record.user) uniqueUsers.add(record.user);
-      });
-      
-      // Calculate total sign-outs
-      const totalSignOuts = userData.signOutRecords.length;
-      
-      // Calculate currently signed out
-      const currentlySignedOut = userData.signOutRecords.filter(record => 
-        record.date <= now && 
-        (!record.endDate || record.endDate >= now) && 
-        !record.signedBackIn
-      ).length;
-      
-      // Calculate average sign-outs per day
-      let avgSignOuts = 0;
-      if (totalSignOuts > 0) {
-        // Get the earliest and latest dates
-        const dates = userData.signOutRecords.map(record => record.date.getTime());
-        const earliestDate = new Date(Math.min(...dates));
-        const latestDate = new Date(Math.max(...dates));
+        <!-- Class Legend -->
+        <div class="class-legend">
+          <div class="class-legend-item">
+            <span class="class-indicator class-12K"></span> 12K
+          </div>
+          <div class="class-legend-item">
+            <span class="class-indicator class-13W"></span> 13W
+          </div>
+          <div class="class-legend-item">
+            <span class="class-indicator class-13B"></span> 13B
+          </div>
+        </div>
         
-        // Calculate days between
-        const daysDiff = Math.max(1, Math.ceil((latestDate - earliestDate) / (1000 * 60 * 60 * 24)));
+        <!-- Activity chart placeholder -->
+        <div id="activity-chart" style="height: 300px; background-color: var(--background-secondary); border-radius: var(--border-radius); display: flex; align-items: center; justify-content: center;">
+          Activity Chart Placeholder
+        </div>
+      </div>
+      
+      <!-- Settings Section -->
+      <div id="settings-content" class="tab-content hidden">
+        <h2>Admin Settings</h2>
         
-        avgSignOuts = (totalSignOuts / daysDiff).toFixed(1);
-      }
-      
-      // Update the DOM
-      document.getElementById('total-users').textContent = uniqueUsers.size;
-      document.getElementById('total-signouts').textContent = totalSignOuts;
-      document.getElementById('current-signouts').textContent = currentlySignedOut;
-      document.getElementById('avg-signouts').textContent = avgSignOuts;
-    }
-    
-    // Confirm Delete User
-    function confirmDeleteUser(username) {
-      if (confirm(`Are you sure you want to delete all data for user "${username}"? This action cannot be undone.`)) {
-        deleteUserData(username);
-      }
-    }
-    
-    // Delete User Data
-    function deleteUserData(username) {
-      if (!username) return;
-      
-      // Remove all user's records
-      userData.signOutRecords = userData.signOutRecords.filter(record => record.user !== username);
-      userData.signInRecords = userData.signInRecords.filter(record => record.user !== username);
-      
-      // Save to Firebase
-      saveData();
-      
-      // If viewing user details, go back to list
-      if (currentSelectedUser === username) {
-        backToUserList();
-      }
-      
-      // Update UI
-      populateUserList();
-      updateStats();
-      
-      alert(`All data for user "${username}" has been deleted.`);
-    }
-    
-    // Confirm Delete User Data from details view
-    function confirmDeleteUserData() {
-      if (currentSelectedUser && confirm(`Are you sure you want to delete all data for user "${currentSelectedUser}"? This action cannot be undone.`)) {
-        deleteUserData(currentSelectedUser);
-      }
-    }
-    
-    // Confirm Clear All Data
-    function confirmClearAllData() {
-      if (confirm("WARNING: Are you sure you want to delete ALL data from the system? This will remove all users and records. This action cannot be undone.")) {
-        if (confirm("This is your final warning. All data will be permanently deleted. Continue?")) {
-          clearAllData();
-        }
-      }
-    }
-    
-    // Clear All Data
-    function clearAllData() {
-      // Reset data
-      userData = {
-        signOutRecords: [],
-        signInRecords: []
-      };
-      
-      // Save to Firebase
-      saveData();
-      
-      // Update UI
-      populateUserList();
-      updateStats();
-      
-      // Go back to users tab
-      showTab('users');
-      
-      alert("All system data has been deleted.");
-    }
-    
-    // Export All Data
-    function exportAllData() {
-      const dataStr = JSON.stringify(userData, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-      
-      const exportFileName = `ez-signout-export-${new Date().toISOString().split('T')[0]}.json`;
-      
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileName);
-      linkElement.click();
-    }
-    
-    // Save data to Firestore
-    function saveData() {
-      try {
-        // Create a serializable copy
-        const serializableData = JSON.parse(JSON.stringify(userData));
+        <div style="margin-top: 20px;">
+          <h3>Data Management</h3>
+          <button class="danger-button" onclick="confirmClearAllData()">Clear All System Data</button>
+          <p style="margin-top: 10px; color: var(--secondary-text-color);">Warning: This will delete all users and records from the system. This action cannot be undone.</p>
+        </div>
         
-        // Save to Firestore
-        db.collection('signOutApp').doc('userData').set(serializableData);
-      } catch (error) {
-        console.error("Error saving data:", error);
-      }
-    }
-    
-    // Set up real-time updates
-    function setupRealtimeUpdates() {
-      db.collection('signOutApp').doc('userData')
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
-            
-            // Convert string dates back to Date objects
-            if (data.signOutRecords) {
-              data.signOutRecords.forEach(record => {
-                record.date = new Date(record.date);
-                if (record.endDate) record.endDate = new Date(record.endDate);
-              });
-            }
-            
-            if (data.signInRecords) {
-              data.signInRecords.forEach(record => {
-                record.date = new Date(record.date);
-              });
-            }
-            
-            // Update our userData with the new data
-            userData = data;
-            
-            // Update the UI
-            populateUserList();
-            updateStats();
-            
-            // Update user details if viewing
-            if (currentSelectedUser) {
-              updateUserStats(currentSelectedUser);
-              if (userDetailView === 'calendar') {
-                updateUserDetailCalendar();
-              } else {
-                updateUserAllRecords();
-              }
-            }
-          }
-        });
-    }
-    
-    // Initialize on page load
-    document.addEventListener("DOMContentLoaded", init);
-  </script>
-</body>
-</html>
+        <div style="margin-top: 30px;">
+          <h3>Export Data</h3>
+          <button class="primary-button" onclick="exportAllData()">Export All Data</button>
+          <p style="margin-top: 10px; color: var(--secondary-text-color);">Download a backup of all system data in JSON format.</p>
+        </div>
+      </div>
+      
+      <!-- Users List Section -->
+      <div id="users-content" class="tab-content">
+        <!-- Search -->
+        <div class="search-container">
+          <input type="text" id="user-search" class="search-input" placeholder="Search users..." onkeyup="searchUsers()">
+        </div>
+        
+        <!-- User List -->
+        <ul id="user-list" class="user-list">
+          <!-- User items will be dynamically added here -->
+        </ul>
+      </div>
+      
+      <!-- User Details View -->
+      <div id="user-details" class="user-details-container hidden">
+        <button class="back-button" onclick="backToUserList()">Back to Users</button>
+        
+        <h2 id="user-detail-name">User Name</h2>
+        <div id="user-detail-class" class="user-stats">Class: -</div>
+        
+        <div class="stats-section">
+          <div class="stat-card">
+            <div
