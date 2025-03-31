@@ -1,4 +1,66 @@
-<!DOCTYPE html>
+// Add empty cells for days after the end of the month
+      const cellsCount = container.children.length;
+      const totalCells = 7 * Math.ceil((firstDayOfWeek + lastDay.getDate()) / 7);
+      
+      for (let i = cellsCount; i < totalCells; i++) {
+        const nextMonthDate = new Date(lastDay);
+        nextMonthDate.setDate(nextMonthDate.getDate() + (i - cellsCount + 1));
+        
+        const dayCell = document.createElement("div");
+        dayCell.className = "calendar-day other-month";
+        dayCell.innerHTML = `<div class="day-number">${nextMonthDate.getDate()}</div>`;
+        
+        // Make next month days clickable
+        dayCell.addEventListener("click", () => onDayClick(nextMonthDate));
+        
+        container.appendChild(dayCell);
+      }
+    }
+    
+    // Toggle between modes
+    function toggleMode() {
+      window.location.href = 'student-view.html';
+    }
+    
+    // Set up real-time updates
+    function setupRealtimeUpdates() {
+      db.collection('signOutApp').doc('userData')
+        .onSnapshot((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            
+            // Convert string dates back to Date objects
+            if (data.signOutRecords) {
+              data.signOutRecords.forEach(record => {
+                record.date = new Date(record.date);
+                if (record.endDate) record.endDate = new Date(record.endDate);
+              });
+            }
+            
+            if (data.signInRecords) {
+              data.signInRecords.forEach(record => {
+                record.date = new Date(record.date);
+              });
+            }
+            
+            // Update our userData with the new data
+            userData = data;
+            
+            // Update the UI
+            updateAdminCalendar();
+            if (adminView === 'monthly') {
+              renderAdminMonthlyCalendar();
+            }
+            updateStats();
+          }
+        });
+    }
+    
+    // Initialize on page load
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html><!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -177,6 +239,37 @@
       margin-bottom: 12px;
     }
     
+    /* Class filter */
+    .class-filter {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .class-filter label {
+      font-weight: 500;
+      color: var(--text-color);
+      font-size: 15px;
+    }
+    
+    .class-filter select {
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 8px 16px;
+      font-size: 15px;
+      border-radius: var(--button-radius);
+      border: 1px solid var(--border-color);
+      outline: none;
+      transition: border-color var(--animation-duration);
+      background-color: var(--background-secondary);
+    }
+    
+    .class-filter select:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+    }
+    
     /* List styling */
     ul {
       list-style-type: none;
@@ -204,6 +297,27 @@
     
     #sign-in-list li {
       border-left: 4px solid var(--signin-color);
+    }
+    
+    .student-class {
+      display: inline-block;
+      background-color: var(--primary-color);
+      color: white;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 6px;
+    }
+    
+    .reason-tag {
+      display: block;
+      background-color: rgba(0, 113, 227, 0.1);
+      color: var(--primary-color);
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+      max-width: fit-content;
     }
     
     /* Calendar styling */
@@ -331,6 +445,27 @@
       display: none !important;
     }
     
+    /* Class event indicators */
+    .class-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    
+    .class-12K {
+      background-color: #34c759; /* Green */
+    }
+    
+    .class-13W {
+      background-color: #0071e3; /* Blue */
+    }
+    
+    .class-13B {
+      background-color: #ff9500; /* Orange */
+    }
+    
     /* Media Queries */
     @media (max-width: 767px) {
       .wrapper {
@@ -371,14 +506,47 @@
         font-size: 28px;
       }
     }
+    
+    /* Daily calendar event items */
+    .calendar-event {
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: white;
+    }
+    
+    .event-12K {
+      background-color: #34c759;
+    }
+    
+    .event-13W {
+      background-color: #0071e3;
+    }
+    
+    .event-13B {
+      background-color: #ff9500;
+    }
   </style>
 </head>
 <body>
-  <!-- Mode toggle removed as requested -->
-
   <div class="wrapper">
     <div id="teacher-view" class="container">
       <h1>Teacher Calendar</h1>
+      
+      <!-- Class Filter -->
+      <div class="class-filter">
+        <label for="class-select">Filter by Class:</label>
+        <select id="class-select" onchange="filterByClass()">
+          <option value="all">All Classes</option>
+          <option value="12K">12K</option>
+          <option value="13W">13W</option>
+          <option value="13B">13B</option>
+        </select>
+      </div>
       
       <!-- Stats Section -->
       <div class="stats-section">
@@ -427,6 +595,14 @@
           <button onclick="changeAdminMonth(0)">Current Month</button>
           <button onclick="changeAdminMonth(1)">Next Month</button>
         </div>
+        
+        <!-- Class Legend -->
+        <div style="margin: 16px 0; font-size: 14px;">
+          <span class="class-indicator class-12K"></span> 12K
+          <span class="class-indicator class-13W" style="margin-left: 16px;"></span> 13W
+          <span class="class-indicator class-13B" style="margin-left: 16px;"></span> 13B
+        </div>
+        
         <div class="monthly-calendar" id="admin-month-calendar">
           <!-- Month calendar will be generated here -->
         </div>
@@ -444,6 +620,7 @@
     let adminDate = new Date();
     let adminMonth = new Date();
     let adminView = "daily";
+    let selectedClass = "all"; // Default to showing all classes
     
     // Initialize the app
     async function init() {
@@ -540,30 +717,45 @@
       return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
     }
     
+    // Filter records by selected class
+    function filterByClass() {
+      selectedClass = document.getElementById("class-select").value;
+      updateAdminCalendar();
+      renderAdminMonthlyCalendar();
+      updateStats();
+    }
+    
     // Update statistics
     function updateStats() {
       const now = new Date();
       const today = getDateString(now);
       
+      // Filter by class if selected
+      const classFilter = (record) => {
+        if (selectedClass === "all") return true;
+        return record.class === selectedClass;
+      };
+      
       // Calculate total sign-outs today
       const todaySignOuts = userData.signOutRecords.filter(record => 
-        getDateString(record.date) === today
+        getDateString(record.date) === today && classFilter(record)
       ).length;
       
       // Calculate currently signed out
       const currentlySignedOut = userData.signOutRecords.filter(record => 
         record.date <= now && 
         (!record.endDate || record.endDate >= now) && 
-        !record.signedBackIn
+        !record.signedBackIn &&
+        classFilter(record)
       ).length;
       
       // Calculate total unique students
       const uniqueStudents = new Set();
-      userData.signOutRecords.forEach(record => {
-        uniqueStudents.add(record.user);
+      userData.signOutRecords.filter(classFilter).forEach(record => {
+        uniqueStudents.add(`${record.user}_${record.class || ''}`);
       });
-      userData.signInRecords.forEach(record => {
-        uniqueStudents.add(record.user);
+      userData.signInRecords.filter(classFilter).forEach(record => {
+        uniqueStudents.add(`${record.user}_${record.class || ''}`);
       });
       
       // Update the DOM
@@ -587,6 +779,9 @@
       // Add sign-out records
       const signOutRecords = userData.signOutRecords.filter(record => {
         const recordDateStr = getDateString(record.date);
+        if (selectedClass !== "all" && record.class !== selectedClass) {
+          return false;
+        }
         return recordDateStr === adminDateStr;
       });
       
@@ -596,6 +791,8 @@
         signOutRecords.forEach((record, index) => {
           const li = document.createElement("li");
           li.className = "sign-out";
+          
+          const contentDiv = document.createElement("div");
           
           let endDateText = "";
           if (record.endDate) {
@@ -612,7 +809,28 @@
           
           const status = record.signedBackIn ? " (Signed back in)" : "";
           
-          li.textContent = `${record.user} signed out at ${formatTime(record.date)}${endDateText}${status}`;
+          // Create class badge
+          const classSpan = document.createElement("span");
+          classSpan.className = "student-class";
+          classSpan.textContent = record.class || "No Class";
+          
+          // Create student info text
+          const infoText = document.createElement("span");
+          infoText.textContent = `${record.user} `;
+          infoText.appendChild(classSpan);
+          infoText.innerHTML += ` signed out at ${formatTime(record.date)}${endDateText}${status}`;
+          
+          contentDiv.appendChild(infoText);
+          
+          // Add reason if exists
+          if (record.reason) {
+            const reasonDiv = document.createElement("div");
+            reasonDiv.className = "reason-tag";
+            reasonDiv.textContent = `Reason: ${record.reason}`;
+            contentDiv.appendChild(reasonDiv);
+          }
+          
+          li.appendChild(contentDiv);
           signOutList.appendChild(li);
         });
       } else {
@@ -624,6 +842,9 @@
       // Add sign-in records
       const signInRecords = userData.signInRecords.filter(record => {
         const recordDateStr = getDateString(record.date);
+        if (selectedClass !== "all" && record.class !== selectedClass) {
+          return false;
+        }
         return recordDateStr === adminDateStr;
       });
       
@@ -633,7 +854,19 @@
         signInRecords.forEach(record => {
           const li = document.createElement("li");
           li.className = "sign-in";
-          li.textContent = `${record.user} signed back in at ${formatTime(record.date)}`;
+          
+          // Create class badge
+          const classSpan = document.createElement("span");
+          classSpan.className = "student-class";
+          classSpan.textContent = record.class || "No Class";
+          
+          // Create student info text
+          const infoText = document.createElement("span");
+          infoText.textContent = `${record.user} `;
+          infoText.appendChild(classSpan);
+          infoText.innerHTML += ` signed back in at ${formatTime(record.date)}`;
+          
+          li.appendChild(infoText);
           signInList.appendChild(li);
         });
       } else {
@@ -749,92 +982,67 @@
           dayCell.classList.add("today");
         }
         
-        // Check if there are events on this day
-        const hasEvents = userData.signOutRecords.some(record => {
+        // Create day number div
+        const dayNumber = document.createElement("div");
+        dayNumber.className = "day-number";
+        dayNumber.textContent = i;
+        dayCell.appendChild(dayNumber);
+        
+        // Check for events on this day and add colored indicators by class
+        const eventsContainer = document.createElement("div");
+        eventsContainer.className = "day-events";
+        
+        // Track classes with events on this day
+        const classesWithEvents = {
+          "12K": false,
+          "13W": false,
+          "13B": false
+        };
+        
+        // Get events for this day, filtered by selected class if applicable
+        const eventsForDay = userData.signOutRecords.filter(record => {
+          // Skip if not matching class filter
+          if (selectedClass !== "all" && record.class !== selectedClass) {
+            return false;
+          }
+          
           // Check if record date matches currentDate
           const recordDateStr = getDateString(record.date);
-          if (recordDateStr === dateStr) return true;
+          if (recordDateStr === dateStr) {
+            if (record.class) classesWithEvents[record.class] = true;
+            return true;
+          }
           
           // Check if record span includes currentDate
           if (record.endDate) {
-            return record.date <= currentDate && record.endDate >= currentDate;
+            if (record.date <= currentDate && record.endDate >= currentDate) {
+              if (record.class) classesWithEvents[record.class] = true;
+              return true;
+            }
           }
           
           return false;
         });
         
-        if (hasEvents) {
+        // Add class indicators
+        Object.keys(classesWithEvents).forEach(className => {
+          if (classesWithEvents[className]) {
+            const indicator = document.createElement("div");
+            indicator.className = `calendar-event event-${className}`;
+            indicator.textContent = className;
+            eventsContainer.appendChild(indicator);
+          }
+        });
+        
+        dayCell.appendChild(eventsContainer);
+        
+        // Add has-events class if any events
+        if (eventsForDay.length > 0) {
           dayCell.classList.add("has-events");
         }
-        
-        dayCell.innerHTML = `<div class="day-number">${i}</div>`;
         
         // Add click event
         dayCell.addEventListener("click", () => onDayClick(currentDate));
         
         container.appendChild(dayCell);
       }
-      
-      // Add empty cells for days after the end of the month
-      const cellsCount = container.children.length;
-      const totalCells = 7 * Math.ceil((firstDayOfWeek + lastDay.getDate()) / 7);
-      
-      for (let i = cellsCount; i < totalCells; i++) {
-        const nextMonthDate = new Date(lastDay);
-        nextMonthDate.setDate(nextMonthDate.getDate() + (i - cellsCount + 1));
-        
-        const dayCell = document.createElement("div");
-        dayCell.className = "calendar-day other-month";
-        dayCell.innerHTML = `<div class="day-number">${nextMonthDate.getDate()}</div>`;
-        
-        // Make next month days clickable
-        dayCell.addEventListener("click", () => onDayClick(nextMonthDate));
-        
-        container.appendChild(dayCell);
-      }
-    }
-    
-    // Toggle between modes
-    function toggleMode() {
-      window.location.href = 'student-view.html';
-    }
-    
-    // Set up real-time updates
-    function setupRealtimeUpdates() {
-      db.collection('signOutApp').doc('userData')
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
-            
-            // Convert string dates back to Date objects
-            if (data.signOutRecords) {
-              data.signOutRecords.forEach(record => {
-                record.date = new Date(record.date);
-                if (record.endDate) record.endDate = new Date(record.endDate);
-              });
-            }
-            
-            if (data.signInRecords) {
-              data.signInRecords.forEach(record => {
-                record.date = new Date(record.date);
-              });
-            }
-            
-            // Update our userData with the new data
-            userData = data;
-            
-            // Update the UI
-            updateAdminCalendar();
-            if (adminView === 'monthly') {
-              renderAdminMonthlyCalendar();
-            }
-            updateStats();
-          }
-        });
-    }
-    
-    // Initialize on page load
-    document.addEventListener("DOMContentLoaded", init);
-  </script>
-</body>
-</html>
