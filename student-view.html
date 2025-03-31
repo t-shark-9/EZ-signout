@@ -25,7 +25,7 @@
     const db = firebase.firestore();
   </script>
   <style>
-    /* Apple-inspired styling - same styling as before */
+    /* Apple-inspired styling */
     @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
     
     :root {
@@ -126,7 +126,8 @@
     input[type="text"],
     input[type="date"],
     input[type="time"],
-    select {
+    select,
+    textarea {
       font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
       padding: 14px 16px;
       font-size: 16px;
@@ -140,9 +141,15 @@
     input[type="text"]:focus,
     input[type="date"]:focus,
     input[type="time"]:focus,
-    select:focus {
+    select:focus,
+    textarea:focus {
       border-color: var(--secondary-color);
       box-shadow: 0 0 0 3px rgba(0, 125, 250, 0.15);
+    }
+    
+    textarea {
+      min-height: 100px;
+      resize: vertical;
     }
     
     label {
@@ -150,19 +157,6 @@
       font-size: 14px;
       margin-bottom: 8px;
       color: var(--secondary-text-color);
-    }
-    
-    /* Class selection dropdown */
-    .class-selection {
-      margin-bottom: 16px;
-    }
-    
-    select {
-      appearance: none;
-      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2014%2014%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M3.5%205.25L7%208.75L10.5%205.25%22%20stroke%3D%22%2386868b%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E");
-      background-repeat: no-repeat;
-      background-position: right 16px center;
-      width: 100%;
     }
     
     /* Button styling */
@@ -290,6 +284,21 @@
       order: -1;
       width: 100%;
       margin-bottom: 12px;
+    }
+    
+    /* Class selection buttons */
+    .class-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .class-button {
+      padding: 12px 24px;
+      font-size: 16px;
+      min-width: 100px;
     }
     
     /* Menu squares styling */
@@ -445,6 +454,16 @@
       justify-content: space-between;
       align-items: center;
     }
+
+    .reason-tag {
+      display: inline-block;
+      background-color: rgba(0, 113, 227, 0.1);
+      color: var(--secondary-color);
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      margin-top: 5px;
+    }
     
     /* Return to Menu button */
     .return-button {
@@ -508,6 +527,12 @@
       content: '⌄';
       margin-left: 4px;
       font-size: 14px;
+    }
+
+    .user-class {
+      color: var(--secondary-text-color);
+      font-size: 14px;
+      margin-bottom: 5px;
     }
     
     /* Date time picker */
@@ -608,31 +633,31 @@
   </style>
 </head>
 <body>
-  <!-- Mode toggle removed as requested -->
-
   <div class="wrapper">
-    <!-- Login Form -->
+    <!-- Login Form - Class Selection First -->
     <div id="login-container" class="container">
       <h1>EZ Sign-Out</h1>
-      <div id="login-form">
-        <h2>Enter your details to continue</h2>
-        <input type="text" id="name-input" placeholder="Your name" autocomplete="name">
-        <div class="class-selection">
-          <select id="class-input">
-            <option value="" disabled selected>Select your class</option>
-            <option value="12K">Class 12K</option>
-            <option value="13W">Class 13W</option>
-            <option value="13B">Class 13B</option>
-          </select>
+      <div id="class-selection">
+        <h2>Select your class</h2>
+        <div class="class-buttons">
+          <button class="class-button secondary-button" data-class="12K">12K</button>
+          <button class="class-button secondary-button" data-class="13W">13W</button>
+          <button class="class-button secondary-button" data-class="13B">13B</button>
         </div>
-        <button id="login-button" class="primary-button">Continue</button>
+      </div>
+      <div id="login-form" class="hidden">
+        <h2>Enter your name to continue</h2>
+        <div class="user-class" id="selected-class-display"></div>
+        <input type="text" id="name-input" placeholder="Your name" autocomplete="name">
+        <button class="primary-button" id="login-button">Continue</button>
+        <button class="secondary-button" id="back-to-class">Back to Class Selection</button>
       </div>
     </div>
 
     <!-- Student View -->
     <div id="student-view" class="container hidden">
       <h1>Welcome, <span id="user-name" class="user-name-clickable"></span></h1>
-      <div id="user-class" style="margin-bottom: 20px; color: var(--secondary-text-color);"></div>
+      <h3><span id="user-class-display"></span></h3>
       <div id="return-to-menu" class="return-button hidden">Return to Menu</div>
       
       <div id="main-menu" class="squares-container">
@@ -663,11 +688,10 @@
           </div>
           <div class="name-change">
             <h3>Change Class</h3>
-            <select id="new-class-input">
-              <option value="" disabled selected>Select your class</option>
-              <option value="12K">Class 12K</option>
-              <option value="13W">Class 13W</option>
-              <option value="13B">Class 13B</option>
+            <select id="new-class-select">
+              <option value="12K">12K</option>
+              <option value="13W">13W</option>
+              <option value="13B">13B</option>
             </select>
             <button id="change-class-btn" class="primary-button">Update Class</button>
           </div>
@@ -722,6 +746,10 @@
         <!-- Sign Out Now Options -->
         <div id="sign-out-now-options" class="hidden">
           <h3>Select Duration</h3>
+          <div>
+            <label for="sign-out-now-reason">Reason for Sign-Out:</label>
+            <textarea id="sign-out-now-reason" placeholder="Enter reason for signing out..."></textarea>
+          </div>
           <button id="sign-out-for-today" class="primary-button">Sign Out for Today</button>
           <button id="sign-out-until-week" class="secondary-button">Sign Out Until End of Week</button>
         </div>
@@ -738,6 +766,10 @@
               <label for="sign-out-time">Time</label>
               <input type="time" id="sign-out-time">
             </div>
+          </div>
+          <div>
+            <label for="sign-out-later-reason">Reason for Sign-Out:</label>
+            <textarea id="sign-out-later-reason" placeholder="Enter reason for signing out..."></textarea>
           </div>
           <button id="confirm-later-sign-out" class="primary-button">Confirm</button>
           
@@ -864,6 +896,23 @@
         // Show login first
         showLogin();
       }
+
+      // Set up class selection buttons
+      document.querySelectorAll('.class-button').forEach(button => {
+        button.addEventListener('click', function() {
+          const selectedClass = this.getAttribute('data-class');
+          selectClass(selectedClass);
+        });
+      });
+
+      // Setup back to class selection button
+      document.getElementById('back-to-class').addEventListener('click', function() {
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('class-selection').classList.remove('hidden');
+      });
+
+      // Setup login button
+      document.getElementById('login-button').addEventListener('click', login);
     }
     
     // Save data to Firestore
@@ -879,34 +928,6 @@
       }
     }
     
-    // Show login screen
-    function showLogin() {
-      document.getElementById("login-container").classList.remove("hidden");
-      document.getElementById("student-view").classList.add("hidden");
-      currentMode = "login";
-    }
-    
-    // Handle login
-    function login() {
-      const nameInput = document.getElementById("name-input").value.trim();
-      const classInput = document.getElementById("class-input").value;
-      
-      if (nameInput && classInput) {
-        userData.currentUser = nameInput;
-        userData.currentClass = classInput;
-        
-        document.getElementById("user-name").textContent = nameInput;
-        document.getElementById("user-class").textContent = `Class: ${classInput}`;
-        document.getElementById("new-class-input").value = classInput;
-        
-        checkUserSignedInStatus();
-        showStudentView();
-        saveData();
-      } else {
-        alert("Please enter your name and select your class to continue.");
-      }
-    }
-    
     // Show student view after login
     function showStudentView() {
       document.getElementById("login-container").classList.add("hidden");
@@ -916,87 +937,37 @@
       updateCalendars();
     }
     
-    // Check if user is currently signed out
-    function checkUserSignedInStatus() {
-      const now = new Date();
-      const activeSignOut = userData.signOutRecords.find(record => {
-        return record.user === userData.currentUser && 
-               record.date <= now && 
-               (!record.endDate || record.endDate >= now) && 
-               !record.signedBackIn;
-      });
-      
-      userData.isSignedIn = !activeSignOut;
-      updateSignInButton();
+    // Show login screen
+    function showLogin() {
+      document.getElementById("login-container").classList.remove("hidden");
+      document.getElementById("student-view").classList.add("hidden");
+      document.getElementById("class-selection").classList.remove("hidden");
+      document.getElementById("login-form").classList.add("hidden");
+      currentMode = "login";
     }
     
-    // Update the user's personal calendar view
-    function updateMyCalendar() {
-      const calendarContent = document.getElementById("my-calendar-content");
-      calendarContent.innerHTML = "";
+    // Handle class selection
+    function selectClass(classId) {
+      userData.currentClass = classId;
+      document.getElementById("selected-class-display").textContent = `Class: ${classId}`;
+      document.getElementById("class-selection").classList.add("hidden");
+      document.getElementById("login-form").classList.remove("hidden");
       
-      const myCalendarDateStr = getDateString(myCalendarDate);
-      const now = new Date();
-      
-      // Display user's sign-out records
-      const userSignOuts = userData.signOutRecords.filter(record => {
-        return record.user === userData.currentUser &&
-               (getDateString(record.date) === myCalendarDateStr || 
-                (record.endDate && record.date <= myCalendarDate && record.endDate >= myCalendarDate));
-      });
-      
-      if (userSignOuts.length > 0) {
-        const signOutsHeader = document.createElement("h3");
-        signOutsHeader.textContent = "Your Sign-Out Records:";
-        calendarContent.appendChild(signOutsHeader);
+      // Focus on the name input
+      document.getElementById("name-input").focus();
+    }
+    
+    // Handle login
+    function login() {
+      const nameInput = document.getElementById("name-input").value.trim();
+      if (nameInput) {
+        userData.currentUser = nameInput;
+        document.getElementById("user-name").textContent = nameInput;
+        document.getElementById("user-class-display").textContent = `Class: ${userData.currentClass}`;
         
-        const ul = document.createElement("ul");
-        userSignOuts.forEach((record, index) => {
-          const li = document.createElement("li");
-          li.className = "record-item";
-          
-          const textSpan = document.createElement("span");
-          
-          let status = "";
-          if (record.signedBackIn) {
-            status = " (Signed back in)";
-          } else if (record.date > now) {
-            status = " (Upcoming)";
-          } else {
-            status = " (Active)";
-          }
-          
-          let durationText = "";
-          if (record.endDate) {
-            if (getDateString(record.date) === getDateString(record.endDate)) {
-              durationText = " for that day";
-            } else {
-              durationText = ` until ${formatDate(record.endDate)}`;
-            }
-          }
-          
-          if (record.isRecurring) {
-            durationText += " (Weekly)";
-          }
-          
-          textSpan.textContent = `Signed out at ${formatTime(record.date)}${durationText}${status}`;
-          li.appendChild(textSpan);
-          
-          // Add cancel button
-          const cancelBtn = document.createElement("button");
-          cancelBtn.textContent = "Cancel";
-          cancelBtn.className = "action-button";
-          cancelBtn.addEventListener("click", () => {
-            cancelSignOut(userData.signOutRecords.indexOf(record));
-            updateMyCalendar();
-          });
-          li.appendChild(cancelBtn);
-          
-          ul.appendChild(li);
-        });
-        calendarContent.appendChild(ul);
+        checkUserSignedInStatus();
+        showStudentView();
+        saveData();
       } else {
-        const noRecords = document.createElement("p");
-        noRecords.textContent = "No sign-out records for this day.";
-        calendarContent.appendChild(noRecords);
+        alert("Please enter your name to continue.");
       }
