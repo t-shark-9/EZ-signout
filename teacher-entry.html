@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Options - EZ Sign-Out</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Initialize Firebase -->
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEfc8pQ0UHiIm9XQSYbKgI2IhOuP1w0do",
+      authDomain: "ez-signout-b1f95.firebaseapp.com",
+      projectId: "ez-signout-b1f95",
+      storageBucket: "ez-signout-b1f95.firebasestorage.app",
+      messagingSenderId: "747672158416",
+      appId: "1:747672158416:web:dbf4f85c5acfb5c9785ed5"
+    };
+  
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+  <style>
+    /* Apple-inspired styling */
+    @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
+    
+    :root {
+      --primary-color: #0071e3; /* Apple blue */
+      --secondary-color: #34c759; /* Apple green */
+      --accent-color: #FF9500; /* Apple orange */
+      --danger-color: #ff3b30; /* Apple red */
+      --text-color: #1d1d1f; /* Apple dark gray */
+      --secondary-text-color: #86868b; /* Apple medium gray */
+      --background-color: #ffffff;
+      --background-secondary: #f5f5f7; /* Apple light gray */
+      --border-color: #d2d2d7;
+      --border-radius: 12px;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --button-radius: 20px;
+      --animation-duration: 0.3s;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-color);
+      background-color: var(--background-color);
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+    }
+    
+    .wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    
+    /* Container styling */
+    .container {
+      background-color: var(--background-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 30px;
+      margin-bottom: 20px;
+      width: 100%;
+      position: relative;
+    }
+    
+    /* Option cards styling */
+    .options-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin: 40px 0;
+    }
+    
+    .option-card {
+      background-color: var(--background-secondary);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      height: 320px;
+      position: relative;
+    }
+    
+    .option-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .option-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+    }
+    
+    .option-card.student-list::before {
+      background-color: var(--primary-color);
+    }
+    
+    .option-card.teacher-signout::before {
+      background-color: var(--secondary-color);
+    }
+    
+    .option-card.emergency-list::before {
+      background-color: var(--danger-color);
+    }
+    
+    .option-content {
+      padding: 30px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .option-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .option-title {
+      font-size: 24px;
+      font-weight: 500;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    
+    .option-description {
+      font-size: 16px;
+      color: var(--secondary-text-color);
+      text-align: center;
+      flex-grow: 1;
+      max-width: 280px;
+      margin: 0 auto;
+    }
+    
+    .option-footer {
+      background-color: var(--background-color);
+      padding: 15px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .option-cta {
+      font-size: 16px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .student-list .option-cta {
+      color: var(--primary-color);
+    }
+    
+    .teacher-signout .option-cta {
+      color: var(--secondary-color);
+    }
+    
+    .emergency-list .option-cta {
+      color: var(--danger-color);
+    }
+    
+    .arrow {
+      transition: transform 0.2s ease;
+    }
+    
+    .option-card:hover .arrow {
+      transform: translateX(4px);
+    }
+    
+    /* Back to home link */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      color: var(--secondary-text-color);
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 20px;
+      transition: color var(--animation-duration);
+    }
+    
+    .back-link:hover {
+      color: var(--text-color);
+    }
+    
+    .back-link::before {
+      content: '←';
+      margin-right: 8px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 767px) {
+      .wrapper {
+        padding: 20px;
+      }
+      
+      h1 {
+        font-size: 28px;
+      }
+      
+      .options-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .option-card {
+        height: auto;
+        min-height: 280px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <a href="index.html" class="back-link">Back to Home</a>
+    
+    <div class="container">
+      <h1>Teacher Dashboard</h1>
+      
+      <div class="options-container">
+        <a href="student-list.html" class="option-card student-list">
+          <div class="option-content">
+            <div class="option-icon">📋</div>
+            <div class="option-title">Student List</div>
+            <div class="option-description">View and manage all students and their sign-out records in a comprehensive list format.</div>
+          </div>
+          <div class="option-footer">
+            <div class="option-cta">View Student List <span class="arrow">→</span></div>
+          </div>
+        </a>
+        
+        <a href="#" class="option-card teacher-signout">
+          <div class="option-content">
+            <div class="option-icon">🚪</div>
+            <div class="option-title">Teacher Sign Out</div>
+            <div class="option-description">Sign out students directly from the teacher interface with additional approval options.</div>
+          </div>
+          <div class="option-footer">
+            <div class="option-cta">Teacher Sign Out <span class="arrow">→</span></div>
+          </div>
+        </a>
+        
+        <a href="emergency-list.html" class="option-card emergency-list">
+          <div class="option-content">
+            <div class="option-icon">🚨</div>
+            <div class="option-title">Emergency List</div>
+            <div class="option-description">Quick view of all students by class with their current sign-out status for emergency situations.</div>
+          </div>
+          <div class="option-footer">
+            <div class="option-cta">View Emergency List <span class="arrow">→</span></div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // This script can be used for any initialization or tracking logic
+    document.addEventListener("DOMContentLoaded", function() {
+      // You could add analytics or session tracking here if needed
+      console.log("Teacher dashboard loaded");
+    });
+  </script>
+</body>
+</html>
