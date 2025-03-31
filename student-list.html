@@ -733,7 +733,8 @@
       // Filter by class if selected
       const classFilter = (record) => {
         if (selectedClass === "all") return true;
-        return record.class === selectedClass;
+        const recordClass = record.class || "No Class";
+        return recordClass === selectedClass;
       };
       
       // Calculate total sign-outs today
@@ -752,10 +753,16 @@
       // Calculate total unique students
       const uniqueStudents = new Set();
       userData.signOutRecords.filter(classFilter).forEach(record => {
-        uniqueStudents.add(`${record.user}_${record.class || ''}`);
+        if (record.user) {
+          const recordClass = record.class || "No Class";
+          uniqueStudents.add(`${record.user}_${recordClass}`);
+        }
       });
       userData.signInRecords.filter(classFilter).forEach(record => {
-        uniqueStudents.add(`${record.user}_${record.class || ''}`);
+        if (record.user) {
+          const recordClass = record.class || "No Class";
+          uniqueStudents.add(`${record.user}_${recordClass}`);
+        }
       });
       
       // Update the DOM
@@ -779,7 +786,8 @@
       // Add sign-out records
       const signOutRecords = userData.signOutRecords.filter(record => {
         const recordDateStr = getDateString(record.date);
-        if (selectedClass !== "all" && record.class !== selectedClass) {
+        const recordClass = record.class || "No Class";
+        if (selectedClass !== "all" && recordClass !== selectedClass) {
           return false;
         }
         return recordDateStr === adminDateStr;
@@ -842,7 +850,8 @@
       // Add sign-in records
       const signInRecords = userData.signInRecords.filter(record => {
         const recordDateStr = getDateString(record.date);
-        if (selectedClass !== "all" && record.class !== selectedClass) {
+        const recordClass = record.class || "No Class";
+        if (selectedClass !== "all" && recordClass !== selectedClass) {
           return false;
         }
         return recordDateStr === adminDateStr;
@@ -1001,22 +1010,28 @@
         
         // Get events for this day, filtered by selected class if applicable
         const eventsForDay = userData.signOutRecords.filter(record => {
+          const recordClass = record.class || "No Class";
+          
           // Skip if not matching class filter
-          if (selectedClass !== "all" && record.class !== selectedClass) {
+          if (selectedClass !== "all" && recordClass !== selectedClass) {
             return false;
           }
           
           // Check if record date matches currentDate
           const recordDateStr = getDateString(record.date);
           if (recordDateStr === dateStr) {
-            if (record.class) classesWithEvents[record.class] = true;
+            if (classesWithEvents.hasOwnProperty(recordClass)) {
+              classesWithEvents[recordClass] = true;
+            }
             return true;
           }
           
           // Check if record span includes currentDate
           if (record.endDate) {
             if (record.date <= currentDate && record.endDate >= currentDate) {
-              if (record.class) classesWithEvents[record.class] = true;
+              if (classesWithEvents.hasOwnProperty(recordClass)) {
+                classesWithEvents[recordClass] = true;
+              }
               return true;
             }
           }
