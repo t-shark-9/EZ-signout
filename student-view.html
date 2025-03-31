@@ -896,23 +896,6 @@
         // Show login first
         showLogin();
       }
-
-      // Set up class selection buttons
-      document.querySelectorAll('.class-button').forEach(button => {
-        button.addEventListener('click', function() {
-          const selectedClass = this.getAttribute('data-class');
-          selectClass(selectedClass);
-        });
-      });
-
-      // Setup back to class selection button
-      document.getElementById('back-to-class').addEventListener('click', function() {
-        document.getElementById('login-form').classList.add('hidden');
-        document.getElementById('class-selection').classList.remove('hidden');
-      });
-
-      // Setup login button
-      document.getElementById('login-button').addEventListener('click', login);
     }
     
     // Save data to Firestore
