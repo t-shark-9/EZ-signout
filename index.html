@@ -4,16 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EZ Sign-Out System</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Initialize Firebase -->
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEfc8pQ0UHiIm9XQSYbKgI2IhOuP1w0do",
+      authDomain: "ez-signout-b1f95.firebaseapp.com",
+      projectId: "ez-signout-b1f95",
+      storageBucket: "ez-signout-b1f95.firebasestorage.app",
+      messagingSenderId: "747672158416",
+      appId: "1:747672158416:web:dbf4f85c5acfb5c9785ed5"
+    };
+  
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
   <style>
     /* Apple-inspired styles */
     @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
     
     :root {
-      --apple-blue: #0071e3;
-      --apple-green: #34c759;
-      --apple-light-gray: #f5f5f7;
-      --apple-dark-gray: #1d1d1f;
-      --apple-medium-gray: #86868b;
+      --primary-color: #0071e3; /* Apple blue */
+      --secondary-color: #34c759; /* Apple green */
+      --accent-color: #FF9500; /* Apple orange */
+      --danger-color: #ff3b30; /* Apple red */
+      --text-color: #1d1d1f; /* Apple dark gray */
+      --secondary-text-color: #86868b; /* Apple medium gray */
+      --background-color: #ffffff;
+      --background-secondary: #f5f5f7; /* Apple light gray */
+      --border-color: #d2d2d7;
+      --border-radius: 12px;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --button-radius: 20px;
+      --animation-duration: 0.3s;
     }
     
     * {
@@ -24,23 +52,28 @@
     
     body {
       font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-      color: var(--apple-dark-gray);
-      background-color: #fff;
+      color: var(--text-color);
+      background-color: var(--background-color);
       margin: 0;
       padding: 0;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
     }
     
     .wrapper {
       max-width: 980px;
       margin: 0 auto;
       padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
     }
     
     header {
       text-align: center;
-      padding: 60px 0 30px;
+      padding: 30px 0;
     }
     
     h1 {
@@ -53,21 +86,81 @@
     .tagline {
       font-size: 24px;
       font-weight: 400;
-      color: var(--apple-medium-gray);
+      color: var(--secondary-text-color);
       max-width: 600px;
-      margin: 0 auto 60px;
+      margin: 0 auto 40px;
     }
     
-    .container {
-      display: flex;
+    /* Login form */
+    .login-container {
+      background-color: var(--background-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 30px;
+      max-width: 400px;
+      margin: 0 auto 40px;
+      text-align: center;
+    }
+    
+    .login-title {
+      font-size: 24px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      color: var(--text-color);
+    }
+    
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 16px;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+      outline: none;
+      transition: border-color var(--animation-duration);
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    input[type="text"]:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 125, 250, 0.15);
+    }
+    
+    button {
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--button-radius);
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--animation-duration);
+      outline: none;
+    }
+    
+    button:hover {
+      background-color: #0077ed;
+      transform: translateY(-1px);
+    }
+    
+    button:active {
+      transform: translateY(1px);
+    }
+    
+    /* Options container */
+    .options-container {
+      display: none;
+      flex-wrap: wrap;
       justify-content: center;
       gap: 30px;
-      flex-wrap: wrap;
+      margin-top: 20px;
     }
     
     .option {
-      width: 320px;
-      background-color: var(--apple-light-gray);
+      width: 300px;
+      background-color: var(--background-secondary);
       border-radius: 18px;
       overflow: hidden;
       box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
@@ -76,6 +169,7 @@
       color: inherit;
       display: flex;
       flex-direction: column;
+      margin-bottom: 20px;
     }
     
     .option:hover {
@@ -84,7 +178,7 @@
     }
     
     .option-image {
-      height: 180px;
+      height: 160px;
       background-position: center;
       background-size: cover;
       position: relative;
@@ -94,33 +188,41 @@
       background-image: linear-gradient(to bottom right, #34c759, #30b350);
     }
     
-    .teacher-image {
+    .register-image {
       background-image: linear-gradient(to bottom right, #0071e3, #0077ed);
     }
     
+    .signout-image {
+      background-image: linear-gradient(to bottom right, #FF9500, #FF8000);
+    }
+    
+    .emergency-image {
+      background-image: linear-gradient(to bottom right, #ff3b30, #ff453a);
+    }
+    
     .option-content {
-      padding: 30px;
+      padding: 25px;
       flex-grow: 1;
       display: flex;
       flex-direction: column;
     }
     
     .option-icon {
-      font-size: 36px;
+      font-size: 32px;
       margin-bottom: 15px;
       align-self: flex-start;
     }
     
     .option-label {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 500;
       margin-bottom: 8px;
       letter-spacing: -0.01em;
     }
     
     .option-description {
-      font-size: 16px;
-      color: var(--apple-medium-gray);
+      font-size: 14px;
+      color: var(--secondary-text-color);
       margin-bottom: 20px;
       flex-grow: 1;
     }
@@ -129,13 +231,21 @@
       align-self: flex-start;
       font-size: 14px;
       font-weight: 500;
-      color: var(--apple-blue);
+      color: var(--primary-color);
       display: flex;
       align-items: center;
     }
     
     .student .option-cta {
-      color: var(--apple-green);
+      color: var(--secondary-color);
+    }
+    
+    .signout .option-cta {
+      color: var(--accent-color);
+    }
+    
+    .emergency .option-cta {
+      color: var(--danger-color);
     }
     
     .arrow {
@@ -148,17 +258,26 @@
     }
     
     footer {
-      margin-top: 100px;
-      padding: 40px 0;
+      margin-top: auto;
+      padding: 20px 0;
       text-align: center;
-      color: var(--apple-medium-gray);
+      color: var(--secondary-text-color);
       font-size: 12px;
       border-top: 1px solid rgba(0, 0, 0, 0.1);
     }
     
+    /* Utilities */
+    .hidden {
+      display: none !important;
+    }
+    
+    .visible {
+      display: flex !important;
+    }
+    
     @media (max-width: 767px) {
       header {
-        padding: 40px 0 20px;
+        padding: 30px 0 20px;
       }
       
       h1 {
@@ -166,11 +285,15 @@
       }
       
       .tagline {
-        font-size: 20px;
-        margin-bottom: 40px;
+        font-size: 18px;
+        margin-bottom: 30px;
       }
       
       .option {
+        width: 100%;
+      }
+      
+      .login-container {
         width: 100%;
       }
     }
@@ -183,8 +306,17 @@
       <p class="tagline">A simple, elegant way to manage student attendance</p>
     </header>
     
-    <div class="container">
-      <a href="student-view.html" class="option student">
+    <!-- Login Form -->
+    <div class="login-container" id="login-form">
+      <h2 class="login-title">Enter your name to continue</h2>
+      <input type="text" id="name-input" placeholder="Your name" autocomplete="name">
+      <button id="login-button">Continue</button>
+    </div>
+    
+    <!-- Options Container (initially hidden) -->
+    <div class="options-container" id="options-container">
+      <!-- Student Option -->
+      <a href="#" class="option student" id="student-option">
         <div class="option-image student-image"></div>
         <div class="option-content">
           <div class="option-icon">👨‍🎓</div>
@@ -194,20 +326,173 @@
         </div>
       </a>
       
-      <a href="teacher-view.html" class="option teacher">
-        <div class="option-image teacher-image"></div>
-        <div class="option-content">
-          <div class="option-icon">👨‍🏫</div>
-          <div class="option-label">Teacher</div>
-          <div class="option-description">Monitor student activity and manage attendance</div>
-          <div class="option-cta">View dashboard <span class="arrow">→</span></div>
-        </div>
-      </a>
+      <!-- Teacher Options (initially hidden) -->
+      <div id="teacher-options">
+        <!-- Register Option -->
+        <a href="#" class="option register" id="register-option">
+          <div class="option-image register-image"></div>
+          <div class="option-content">
+            <div class="option-icon">📋</div>
+            <div class="option-label">Register</div>
+            <div class="option-description">Access attendance records and manage student data</div>
+            <div class="option-cta">View dashboard <span class="arrow">→</span></div>
+          </div>
+        </a>
+        
+        <!-- Sign Out Option -->
+        <a href="#" class="option signout" id="signout-option">
+          <div class="option-image signout-image"></div>
+          <div class="option-content">
+            <div class="option-icon">🚪</div>
+            <div class="option-label">Sign Out</div>
+            <div class="option-description">Quickly sign out students or manage your own schedule</div>
+            <div class="option-cta">Manage sign-outs <span class="arrow">→</span></div>
+          </div>
+        </a>
+        
+        <!-- Emergency List Option -->
+        <a href="#" class="option emergency" id="emergency-option">
+          <div class="option-image emergency-image"></div>
+          <div class="option-content">
+            <div class="option-icon">🚨</div>
+            <div class="option-label">Emergency List</div>
+            <div class="option-description">Generate a printable list of all students and their current status</div>
+            <div class="option-cta">View list <span class="arrow">→</span></div>
+          </div>
+        </a>
+      </div>
     </div>
     
     <footer>
       <p>© 2025 EZ Sign-Out. All rights reserved.</p>
     </footer>
   </div>
+
+  <script>
+    // Data storage for user
+    let currentUser = "";
+    let isTeacher = false;
+    
+    // Teacher list (you should replace this with your actual teacher list or validation method)
+    const teacherList = [
+      "Mr. Smith", 
+      "Ms. Johnson", 
+      "Mr. Williams", 
+      "Mrs. Brown",
+      "Ms. Jones",
+      "Mr. Davis",
+      "Mrs. Miller",
+      "Dr. Wilson",
+      "Admin"
+    ];
+    
+    // Check if user exists in Firestore
+    async function checkUserExists(name) {
+      try {
+        const docRef = db.collection('signOutApp').doc('userData');
+        const doc = await docRef.get();
+        
+        if (doc.exists) {
+          const data = doc.data();
+          
+          // Check if name exists in records
+          if (data.signOutRecords) {
+            for (const record of data.signOutRecords) {
+              if (record.user === name) {
+                return true;
+              }
+            }
+          }
+          
+          if (data.signInRecords) {
+            for (const record of data.signInRecords) {
+              if (record.user === name) {
+                return true;
+              }
+            }
+          }
+        }
+        
+        return false;
+      } catch (error) {
+        console.error("Error checking user:", error);
+        return false;
+      }
+    }
+    
+    // Handle login
+    async function handleLogin() {
+      const nameInput = document.getElementById("name-input").value.trim();
+      
+      if (!nameInput) {
+        alert("Please enter your name to continue.");
+        return;
+      }
+      
+      currentUser = nameInput;
+      
+      // Check if user is a teacher
+      isTeacher = teacherList.includes(currentUser);
+      
+      // Hide login form and show appropriate options
+      document.getElementById("login-form").classList.add("hidden");
+      document.getElementById("options-container").classList.add("visible");
+      
+      // If not a teacher, hide teacher options and automatically redirect to student view
+      if (!isTeacher) {
+        document.getElementById("teacher-options").classList.add("hidden");
+        
+        // Check if user exists in database
+        const userExists = await checkUserExists(currentUser);
+        
+        // If new user, give them a moment to see the student option
+        if (!userExists) {
+          setTimeout(() => {
+            window.location.href = `student-view.html?user=${encodeURIComponent(currentUser)}`;
+          }, 1000);
+        } else {
+          // Redirect immediately if existing user
+          window.location.href = `student-view.html?user=${encodeURIComponent(currentUser)}`;
+        }
+      }
+    }
+    
+    // Add event listeners when DOM is loaded
+    document.addEventListener("DOMContentLoaded", function() {
+      // Login button click
+      document.getElementById("login-button").addEventListener("click", handleLogin);
+      
+      // Enter key press on name input
+      document.getElementById("name-input").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+          handleLogin();
+        }
+      });
+      
+      // Student option click
+      document.getElementById("student-option").addEventListener("click", function(event) {
+        event.preventDefault();
+        window.location.href = `student-view.html?user=${encodeURIComponent(currentUser)}`;
+      });
+      
+      // Register option click
+      document.getElementById("register-option").addEventListener("click", function(event) {
+        event.preventDefault();
+        window.location.href = `teacher-view.html?user=${encodeURIComponent(currentUser)}`;
+      });
+      
+      // Sign Out option click
+      document.getElementById("signout-option").addEventListener("click", function(event) {
+        event.preventDefault();
+        window.location.href = `student-view.html?user=${encodeURIComponent(currentUser)}&teacher=true`;
+      });
+      
+      // Emergency List option click
+      document.getElementById("emergency-option").addEventListener("click", function(event) {
+        event.preventDefault();
+        window.location.href = `emergency-list.html?user=${encodeURIComponent(currentUser)}`;
+      });
+    });
+  </script>
 </body>
 </html>
