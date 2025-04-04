@@ -154,9 +154,10 @@
       background-color: #0077ed;
     }
     
-    /* Student list */
-    .student-list {
+    /* User list tables */
+    .person-list {
       margin-top: 20px;
+      margin-bottom: 40px;
     }
     
     table {
@@ -202,12 +203,17 @@
       font-weight: 500;
     }
     
-    .status-active {
+    .status-present {
+      background-color: rgba(52, 199, 89, 0.1);
+      color: var(--secondary-color);
+    }
+    
+    .status-absent {
       background-color: rgba(255, 59, 48, 0.1);
       color: var(--danger-color);
     }
     
-    .no-students {
+    .no-people {
       padding: 20px;
       text-align: center;
       background-color: var(--background-secondary);
@@ -230,6 +236,54 @@
     
     .print-button:hover {
       background-color: #0077ed;
+    }
+    
+    /* Summary stats */
+    .stats-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-card {
+      background-color: var(--background-secondary);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    
+    .stat-value {
+      font-size: 32px;
+      font-weight: 600;
+      margin: 10px 0;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: var(--secondary-text-color);
+    }
+    
+    /* Search */
+    .search-container {
+      margin-bottom: 24px;
+    }
+    
+    .search-input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border-color);
+      margin-bottom: 16px;
+      outline: none;
+      transition: all var(--animation-duration);
+    }
+    
+    .search-input:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
     }
     
     @media print {
@@ -273,6 +327,10 @@
       th, td {
         padding: 12px 8px;
       }
+      
+      .stats-section {
+        grid-template-columns: 1fr 1fr;
+      }
     }
   </style>
 </head>
@@ -282,31 +340,64 @@
       <a href="teacher-ui.html" class="return-button no-print">Return to Dashboard</a>
       
       <div class="emergency-header">
-        <h1>Emergency Sign-Out List</h1>
+        <h1>Emergency List</h1>
         <button class="print-button no-print" onclick="window.print()">Print List</button>
       </div>
       
       <p class="timestamp">Last updated: <span id="update-time">Loading...</span></p>
       
-      <div id="student-container" class="student-list">
+      <div class="stats-section no-print">
+        <div class="stat-card">
+          <div class="stat-label">Total People</div>
+          <div class="stat-value" id="total-people">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Present</div>
+          <div class="stat-value" id="total-present">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Absent</div>
+          <div class="stat-value" id="total-absent">0</div>
+        </div>
+      </div>
+      
+      <div class="search-container no-print">
+        <input type="text" id="search-input" class="search-input" placeholder="Search names..." onkeyup="searchPeople()">
+        <button onclick="refreshList()">Refresh List</button>
+      </div>
+      
+      <h2>Teachers</h2>
+      <div id="teachers-container" class="person-list">
         <table>
           <thead>
             <tr>
-              <th>Student Name</th>
-              <th>Signed Out Time</th>
-              <th>Duration</th>
+              <th>Name</th>
               <th>Status</th>
+              <th>Details</th>
               <th class="no-print">Action</th>
             </tr>
           </thead>
-          <tbody id="student-list">
-            <!-- Student list will be populated here -->
+          <tbody id="teachers-list">
+            <!-- Teachers will be populated here -->
           </tbody>
         </table>
       </div>
       
-      <div id="no-students" class="no-students hidden">
-        <p>No students are currently signed out.</p>
+      <h2>Students</h2>
+      <div id="students-container" class="person-list">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Details</th>
+              <th class="no-print">Action</th>
+            </tr>
+          </thead>
+          <tbody id="students-list">
+            <!-- Students will be populated here -->
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -318,8 +409,39 @@
       signInRecords: []
     };
     
+    // Define all available users with their roles - same as in index.html
+    // This ensures the emergency list shows the same users who can sign out in the system
+    const availableUsers = [
+      // Students
+      { name: "Tjark", role: "12k" },
+      { name: "Cecilia", role: "12k" },
+      { name: "Sarah", role: "12k" },
+      { name: "Luca", role: "12k" },
+      { name: "Folke", role: "12k" },
+      { name: "Mania", role: "12k" },
+      { name: "Aditi", role: "12k" },
+      { name: "Teuen", role: "12k" },
+      { name: "Aurelius", role: "12k" },
+      { name: "Ebba", role: "12k" },
+      { name: "Nell", role: "12k" },
+      { name: "Flora", role: "12k" },
+      
+      // Teachers
+      { name: "Ms. King", role: "Teacher" },
+      { name: "Mr. Barry", role: "Teacher" },
+      { name: "Mr. Thompson", role: "Teacher" },
+      { name: "Mr. Wise", role: "Teacher" },
+      { name: "Mr. Lee", role: "Teacher" },
+      { name: "Mr. Smith", role: "Teacher" },
+      { name: "Mr. Crozier", role: "Teacher" },
+      { name: "Ms. Ward", role: "Teacher" }
+    ];
+    
     // Initialize the app
     async function init() {
+      // Update timestamp
+      updateTimestamp();
+      
       try {
         // Load data from Firestore
         const docRef = db.collection('signOutApp').doc('userData');
@@ -373,6 +495,18 @@
       }
     }
     
+    // Update timestamp
+    function updateTimestamp() {
+      const now = new Date();
+      document.getElementById('update-time').textContent = now.toLocaleString();
+    }
+    
+    // Refresh the list
+    function refreshList() {
+      updateTimestamp();
+      updateEmergencyList();
+    }
+    
     // Format date for display
     function formatDate(date) {
       return date.toLocaleDateString('en-US', { 
@@ -390,104 +524,258 @@
       });
     }
     
-    // Get duration text
-    function getDurationText(startDate, endDate) {
-      if (!endDate) {
-        return "Until signed back in";
+    // Check if a user is currently present (not signed out)
+    function isUserPresent(username) {
+      const now = new Date();
+      
+      // Check if user has an active sign-out record
+      const activeSignOut = userData.signOutRecords.find(record => {
+        return record.user === username && 
+               record.date <= now && 
+               (!record.endDate || record.endDate >= now) && 
+               !record.signedBackIn;
+      });
+      
+      // User is present if they don't have an active sign-out
+      return !activeSignOut;
+    }
+    
+    // Get active sign-out details for a user
+    function getActiveSignOutDetails(username) {
+      const now = new Date();
+      
+      // Find active sign-out for the user
+      const activeSignOut = userData.signOutRecords.find(record => {
+        return record.user === username && 
+               record.date <= now && 
+               (!record.endDate || record.endDate >= now) && 
+               !record.signedBackIn;
+      });
+      
+      if (!activeSignOut) {
+        return null;
       }
       
-      const isSameDay = 
-        startDate.getDate() === endDate.getDate() &&
-        startDate.getMonth() === endDate.getMonth() &&
-        startDate.getFullYear() === endDate.getFullYear();
-        
-      if (isSameDay) {
-        return "Until end of day";
+      // Format duration text
+      let durationText = "";
+      if (activeSignOut.endDate) {
+        const isSameDay = 
+          activeSignOut.date.getDate() === activeSignOut.endDate.getDate() &&
+          activeSignOut.date.getMonth() === activeSignOut.endDate.getMonth() &&
+          activeSignOut.date.getFullYear() === activeSignOut.endDate.getFullYear();
+          
+        if (isSameDay) {
+          durationText = "Until end of day";
+        } else {
+          durationText = `Until ${formatDate(activeSignOut.endDate)}`;
+        }
       } else {
-        return `Until ${formatDate(endDate)}`;
+        durationText = "Until signed back in";
       }
+      
+      if (activeSignOut.isRecurring) {
+        durationText += " (Weekly)";
+      }
+      
+      const details = {
+        timeText: `${formatDate(activeSignOut.date)} at ${formatTime(activeSignOut.date)}`,
+        durationText: durationText,
+        record: activeSignOut
+      };
+      
+      return details;
     }
     
     // Update the emergency list
     function updateEmergencyList() {
-      const studentList = document.getElementById("student-list");
-      const noStudents = document.getElementById("no-students");
-      const updateTime = document.getElementById("update-time");
+      const teachersList = document.getElementById("teachers-list");
+      const studentsList = document.getElementById("students-list");
       
-      // Update timestamp
-      updateTime.textContent = new Date().toLocaleString();
+      // Clear previous lists
+      teachersList.innerHTML = "";
+      studentsList.innerHTML = "";
       
-      // Clear previous list
-      studentList.innerHTML = "";
+      // Create a set of all users to display
+      const allUsers = new Set();
       
-      // Get active sign-outs
-      const now = new Date();
-      const activeSignOuts = userData.signOutRecords.filter(record => 
-        record.date <= now && 
-        (!record.endDate || record.endDate >= now) && 
-        !record.signedBackIn
-      );
+      // Add all predefined users from availableUsers array
+      availableUsers.forEach(user => {
+        allUsers.add(user.name);
+      });
       
-      if (activeSignOuts.length === 0) {
-        // No active sign-outs
-        noStudents.classList.remove("hidden");
-        document.getElementById("student-container").classList.add("hidden");
-      } else {
-        // Sort by name
-        activeSignOuts.sort((a, b) => a.user.localeCompare(b.user));
+      // Add any additional users from sign-out/sign-in records
+      userData.signOutRecords.forEach(record => {
+        if (record.user) allUsers.add(record.user);
+      });
+      
+      userData.signInRecords.forEach(record => {
+        if (record.user) allUsers.add(record.user);
+      });
+      
+      // Initialize counters
+      let totalPeople = 0;
+      let totalPresent = 0;
+      let totalAbsent = 0;
+      
+      // Process teachers
+      const teachers = Array.from(allUsers).filter(username => {
+        // Check if this user is a teacher based on the availableUsers array
+        const userInfo = availableUsers.find(u => u.name === username);
+        return userInfo && userInfo.role === "Teacher";
+      }).sort();
+      
+      teachers.forEach(username => {
+        totalPeople++;
+        const isPresent = isUserPresent(username);
+        if (isPresent) {
+          totalPresent++;
+        } else {
+          totalAbsent++;
+        }
         
-        // Add active sign-outs to the list
-        activeSignOuts.forEach(record => {
-          const row = document.createElement("tr");
-          
-          // Student name
-          const nameCell = document.createElement("td");
-          nameCell.textContent = record.user;
-          row.appendChild(nameCell);
-          
-          // Sign-out time
-          const timeCell = document.createElement("td");
-          timeCell.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}`;
-          row.appendChild(timeCell);
-          
-          // Duration
-          const durationCell = document.createElement("td");
-          durationCell.textContent = getDurationText(record.date, record.endDate);
-          if (record.isRecurring) {
-            durationCell.textContent += " (Weekly)";
+        const row = document.createElement("tr");
+        
+        // Name cell
+        const nameCell = document.createElement("td");
+        nameCell.textContent = username;
+        row.appendChild(nameCell);
+        
+        // Status cell
+        const statusCell = document.createElement("td");
+        const statusBadge = document.createElement("span");
+        statusBadge.className = `status-badge ${isPresent ? 'status-present' : 'status-absent'}`;
+        statusBadge.textContent = isPresent ? "Present" : "Absent";
+        statusCell.appendChild(statusBadge);
+        row.appendChild(statusCell);
+        
+        // Details cell
+        const detailsCell = document.createElement("td");
+        if (!isPresent) {
+          const signOutDetails = getActiveSignOutDetails(username);
+          if (signOutDetails) {
+            detailsCell.textContent = `Signed out: ${signOutDetails.timeText} - ${signOutDetails.durationText}`;
+          } else {
+            detailsCell.textContent = "No sign-out details available";
           }
-          row.appendChild(durationCell);
-          
-          // Status
-          const statusCell = document.createElement("td");
-          const statusBadge = document.createElement("span");
-          statusBadge.className = "status-badge status-active";
-          statusBadge.textContent = "Active";
-          statusCell.appendChild(statusBadge);
-          row.appendChild(statusCell);
-          
-          // Action button
-          const actionCell = document.createElement("td");
-          actionCell.className = "no-print";
+        } else {
+          detailsCell.textContent = "-";
+        }
+        row.appendChild(detailsCell);
+        
+        // Action cell
+        const actionCell = document.createElement("td");
+        actionCell.className = "no-print";
+        if (!isPresent) {
           const signInButton = document.createElement("button");
           signInButton.className = "action-button";
           signInButton.textContent = "Sign Back In";
           signInButton.addEventListener("click", () => {
-            signBackIn(record);
+            const signOutDetails = getActiveSignOutDetails(username);
+            if (signOutDetails && signOutDetails.record) {
+              signBackIn(signOutDetails.record);
+            }
           });
           actionCell.appendChild(signInButton);
-          row.appendChild(actionCell);
-          
-          studentList.appendChild(row);
-        });
+        } else {
+          actionCell.textContent = "-";
+        }
+        row.appendChild(actionCell);
         
-        // Show the student container
-        noStudents.classList.add("hidden");
-        document.getElementById("student-container").classList.remove("hidden");
-      }
+        teachersList.appendChild(row);
+      });
+      
+      // Process students
+      const students = Array.from(allUsers).filter(username => {
+        // Check if this user is a student or unknown role
+        const userInfo = availableUsers.find(u => u.name === username);
+        return !userInfo || userInfo.role !== "Teacher";
+      }).sort();
+      
+      students.forEach(username => {
+        totalPeople++;
+        const isPresent = isUserPresent(username);
+        if (isPresent) {
+          totalPresent++;
+        } else {
+          totalAbsent++;
+        }
+        
+        const row = document.createElement("tr");
+        
+        // Name cell
+        const nameCell = document.createElement("td");
+        nameCell.textContent = username;
+        row.appendChild(nameCell);
+        
+        // Status cell
+        const statusCell = document.createElement("td");
+        const statusBadge = document.createElement("span");
+        statusBadge.className = `status-badge ${isPresent ? 'status-present' : 'status-absent'}`;
+        statusBadge.textContent = isPresent ? "Present" : "Absent";
+        statusCell.appendChild(statusBadge);
+        row.appendChild(statusCell);
+        
+        // Details cell
+        const detailsCell = document.createElement("td");
+        if (!isPresent) {
+          const signOutDetails = getActiveSignOutDetails(username);
+          if (signOutDetails) {
+            detailsCell.textContent = `Signed out: ${signOutDetails.timeText} - ${signOutDetails.durationText}`;
+          } else {
+            detailsCell.textContent = "No sign-out details available";
+          }
+        } else {
+          detailsCell.textContent = "-";
+        }
+        row.appendChild(detailsCell);
+        
+        // Action cell
+        const actionCell = document.createElement("td");
+        actionCell.className = "no-print";
+        if (!isPresent) {
+          const signInButton = document.createElement("button");
+          signInButton.className = "action-button";
+          signInButton.textContent = "Sign Back In";
+          signInButton.addEventListener("click", () => {
+            const signOutDetails = getActiveSignOutDetails(username);
+            if (signOutDetails && signOutDetails.record) {
+              signBackIn(signOutDetails.record);
+            }
+          });
+          actionCell.appendChild(signInButton);
+        } else {
+          actionCell.textContent = "-";
+        }
+        row.appendChild(actionCell);
+        
+        studentsList.appendChild(row);
+      });
+      
+      // Update stats
+      document.getElementById('total-people').textContent = totalPeople;
+      document.getElementById('total-present').textContent = totalPresent;
+      document.getElementById('total-absent').textContent = totalAbsent;
     }
     
-    // Sign student back in
+    // Search functionality
+    function searchPeople() {
+      const searchTerm = document.getElementById('search-input').value.toLowerCase();
+      const rows = document.querySelectorAll('tbody tr');
+      
+      rows.forEach(row => {
+        const nameCell = row.querySelector('td:first-child');
+        if (nameCell) {
+          const name = nameCell.textContent.toLowerCase();
+          if (name.includes(searchTerm)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        }
+      });
+    }
+    
+    // Sign user back in
     function signBackIn(record) {
       if (confirm(`Are you sure you want to sign ${record.user} back in?`)) {
         // Find the record in userData
@@ -552,7 +840,8 @@
             // Update our userData with the new data
             userData = data;
             
-            // Update UI
+            // Update timestamp and UI
+            updateTimestamp();
             updateEmergencyList();
           }
         });
