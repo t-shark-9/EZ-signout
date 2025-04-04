@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EZ Sign-Out System</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Initialize Firebase -->
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEfc8pQ0UHiIm9XQSYbKgI2IhOuP1w0do",
+      authDomain: "ez-signout-b1f95.firebaseapp.com",
+      projectId: "ez-signout-b1f95",
+      storageBucket: "ez-signout-b1f95.firebasestorage.app",
+      messagingSenderId: "747672158416",
+      appId: "1:747672158416:web:dbf4f85c5acfb5c9785ed5"
+    };
+  
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+  <style>
+    /* Apple-inspired styles */
+    @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
+    
+    :root {
+      --primary-color: #0071e3; /* Apple blue */
+      --secondary-color: #34c759; /* Apple green */
+      --text-color: #1d1d1f; /* Apple dark gray */
+      --secondary-text-color: #86868b; /* Apple medium gray */
+      --background-color: #ffffff;
+      --background-secondary: #f5f5f7; /* Apple light gray */
+      --border-color: #d2d2d7;
+      --border-radius: 12px;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --button-radius: 20px;
+      --animation-duration: 0.3s;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-color);
+      background-color: var(--background-color);
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .login-container {
+      max-width: 480px;
+      width: 100%;
+      background-color: var(--background-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 40px;
+      text-align: center;
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      margin-bottom: 16px;
+    }
+    
+    p.tagline {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--secondary-text-color);
+      margin-bottom: 40px;
+    }
+    
+    .input-container {
+      position: relative;
+      margin-bottom: 24px;
+    }
+    
+    .search-input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 16px;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border-color);
+      margin-bottom: 8px;
+      outline: none;
+      transition: border-color var(--animation-duration);
+    }
+    
+    .search-input:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 125, 250, 0.15);
+    }
+    
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      background-color: var(--background-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+    }
+    
+    .search-results.active {
+      display: block;
+    }
+    
+    .result-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background-color var(--animation-duration);
+      text-align: left;
+    }
+    
+    .result-item:hover {
+      background-color: var(--background-secondary);
+    }
+    
+    button.continue-btn {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--button-radius);
+      padding: 14px 20px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--animation-duration);
+      margin-top: 16px;
+      width: 100%;
+    }
+    
+    button.continue-btn:hover {
+      background-color: #0077ed;
+      transform: translateY(-1px);
+    }
+    
+    button.continue-btn:active {
+      transform: translateY(1px);
+    }
+    
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 20px;
+      text-align: center;
+      color: var(--secondary-text-color);
+      font-size: 12px;
+    }
+    
+    @media (max-width: 767px) {
+      .login-container {
+        padding: 30px 20px;
+        max-width: 90%;
+      }
+      
+      h1 {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>EZ Sign-Out</h1>
+    <p class="tagline">A simple, elegant way to manage attendance</p>
+    
+    <div class="input-container">
+      <input type="text" id="name-search" class="search-input" placeholder="Enter your name..." autocomplete="off">
+      <div id="search-results" class="search-results"></div>
+    </div>
+    
+    <button id="continue-btn" class="continue-btn" disabled>Continue</button>
+  </div>
+  
+  <footer>
+    <p>© 2025 EZ Sign-Out. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // Define available users with their roles
+    const availableUsers = [
+      { name: "Tjark", role: "12k" },
+      { name: "Cecilia", role: "12k" },
+      { name: "Sarah", role: "12k" },
+      { name: "Luca", role: "12k" },
+      { name: "Ms. King", role: "Teacher" }
+    ];
+    
+    // DOM elements
+    const nameSearchInput = document.getElementById("name-search");
+    const searchResults = document.getElementById("search-results");
+    const continueBtn = document.getElementById("continue-btn");
+    
+    // Selected user
+    let selectedUser = null;
+    
+    // Event listeners
+    nameSearchInput.addEventListener("input", handleSearch);
+    nameSearchInput.addEventListener("focus", showResults);
+    continueBtn.addEventListener("click", handleContinue);
+    
+    // Close results when clicking outside
+    document.addEventListener("click", function(event) {
+      if (!nameSearchInput.contains(event.target) && !searchResults.contains(event.target)) {
+        searchResults.classList.remove("active");
+      }
+    });
+    
+    // Handle search input
+    function handleSearch() {
+      const searchTerm = nameSearchInput.value.trim().toLowerCase();
+      
+      if (searchTerm.length === 0) {
+        searchResults.innerHTML = "";
+        searchResults.classList.remove("active");
+        continueBtn.disabled = true;
+        selectedUser = null;
+        return;
+      }
+      
+      // Filter available users
+      const filteredUsers = availableUsers.filter(user => 
+        user.name.toLowerCase().includes(searchTerm)
+      );
+      
+      // Display results
+      if (filteredUsers.length > 0) {
+        searchResults.classList.add("active");
+        searchResults.innerHTML = "";
+        
+        filteredUsers.forEach(user => {
+          const resultItem = document.createElement("div");
+          resultItem.className = "result-item";
+          resultItem.textContent = user.name;
+          resultItem.addEventListener("click", () => selectUser(user));
+          searchResults.appendChild(resultItem);
+        });
+      } else {
+        searchResults.classList.remove("active");
+      }
+    }
+    
+    // Show all results when input is focused
+    function showResults() {
+      if (availableUsers.length > 0) {
+        searchResults.classList.add("active");
+        searchResults.innerHTML = "";
+        
+        availableUsers.forEach(user => {
+          const resultItem = document.createElement("div");
+          resultItem.className = "result-item";
+          resultItem.textContent = user.name;
+          resultItem.addEventListener("click", () => selectUser(user));
+          searchResults.appendChild(resultItem);
+        });
+      }
+    }
+    
+    // Select a user
+    function selectUser(user) {
+      selectedUser = user;
+      nameSearchInput.value = user.name;
+      searchResults.classList.remove("active");
+      continueBtn.disabled = false;
+    }
+    
+    // Handle continue button click
+    function handleContinue() {
+      if (!selectedUser) return;
+      
+      // Save selected user to localStorage
+      localStorage.setItem("currentUser", selectedUser.name);
+      localStorage.setItem("userRole", selectedUser.role);
+      
+      // Redirect based on role
+      if (selectedUser.role === "Teacher") {
+        window.location.href = "teacher/index.html";
+      } else {
+        window.location.href = "student/index.html";
+      }
+    }
+  </script>
+</body>
+</html>
