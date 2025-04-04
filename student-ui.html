@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <title>Student Dashboard - EZ Sign-Out</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Initialize Firebase -->
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEfc8pQ0UHiIm9XQSYbKgI2IhOuP1w0do",
+      authDomain: "ez-signout-b1f95.firebaseapp.com",
+      projectId: "ez-signout-b1f95",
+      storageBucket: "ez-signout-b1f95.firebasestorage.app",
+      messagingSenderId: "747672158416",
+      appId: "1:747672158416:web:dbf4f85c5acfb5c9785ed5"
+    };
+  
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+  <style>
+    /* Apple-inspired styling */
+    @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
+    
+    :root {
+      --primary-color: #34c759; /* Apple green */
+      --secondary-color: #0071e3; /* Apple blue */
+      --text-color: #1d1d1f; /* Apple dark gray */
+      --secondary-text-color: #86868b; /* Apple medium gray */
+      --background-color: #ffffff;
+      --background-secondary: #f5f5f7; /* Apple light gray */
+      --border-color: #d2d2d7;
+      --border-radius: 12px;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --button-radius: 20px;
+      --animation-duration: 0.3s;
+    }
+    
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-color);
+      background-color: var(--background-color);
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+    }
+    
+    .wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      margin-bottom: 16px;
+    }
+    
+    /* Container styling */
+    .container {
+      background-color: var(--background-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+      width: 100%;
+      position: relative;
+    }
+    
+    /* Menu squares styling */
+    .squares-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+    
+    .square {
+      background-color: var(--background-secondary);
+      border-radius: var(--border-radius);
+      height: 160px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--animation-duration);
+      position: relative;
+      overflow: hidden;
+      font-weight: 500;
+      font-size: 18px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      text-align: center;
+      text-decoration: none;
+      color: var(--text-color);
+    }
+    
+    .square:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+    
+    .square::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background-color: var(--primary-color);
+    }
+    
+    .square#signout-calendar::before {
+      background-color: #ff9500; /* Apple orange */
+    }
+    
+    .square#signout::before {
+      background-color: var(--primary-color);
+    }
+    
+    .square#signin::before {
+      background-color: var(--secondary-color);
+    }
+    
+    .square-icon {
+      font-size: 36px;
+      margin-bottom: 16px;
+    }
+    
+    .square.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .square.disabled:hover {
+      transform: none;
+      box-shadow: var(--shadow);
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 767px) {
+      .wrapper {
+        padding: 16px;
+      }
+      
+      h1 {
+        font-size: 28px;
+      }
+      
+      .container {
+        padding: 16px;
+      }
+      
+      .squares-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .square {
+        height: 120px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <h1>Student Dashboard</h1>
+      
+      <div class="squares-container">
+        <a href="student-calendar.html" class="square" id="signout-calendar">
+          <span class="square-icon">📅</span>
+          Calendar
+        </a>
+        <a href="student-signout.html" class="square" id="signout">
+          <span class="square-icon">🚪</span>
+          Sign Out
+        </a>
+        <a href="student-signin.html" class="square" id="signin">
+          <span class="square-icon">↩️</span>
+          Sign Back In
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Data storage
+    let userData = {
+      signOutRecords: [],
+      signInRecords: []
+    };
+    
+    // Initialize the app
+    async function init() {
+      try {
+        // Load data from Firestore
+        const docRef = db.collection('signOutApp').doc('userData');
+        const doc = await docRef.get();
+        
+        if (doc.exists) {
+          const data = doc.data();
+          
+          // Convert string dates back to Date objects
+          if (data.signOutRecords) {
+            data.signOutRecords.forEach(record => {
+              record.date = new Date(record.date);
+              if (record.endDate) record.endDate = new Date(record.endDate);
+            });
+          }
+          
+          if (data.signInRecords) {
+            data.signInRecords.forEach(record => {
+              record.date = new Date(record.date);
+            });
+          }
+          
+          userData = data;
+          
+          // Check if user is currently signed out
+          checkUserSignedInStatus();
+        } else {
+          // Initialize with empty data if document doesn't exist
+          userData = {
+            signOutRecords: [],
+            signInRecords: []
+          };
+          
+          // Create the document
+          await docRef.set(userData);
+        }
+        
+        // Set up real-time updates
+        setupRealtimeUpdates();
+      } catch (error) {
+        console.error("Error loading data:", error);
+      }
+    }
+    
+    // Check if user is currently signed out
+    function checkUserSignedInStatus() {
+      const userName = getUserName();
+      const now = new Date();
+      
+      // Find if there's an active sign-out for the current user
+      const activeSignOut = userData.signOutRecords.find(record => {
+        return record.user === userName && 
+               record.date <= now && 
+               (!record.endDate || record.endDate >= now) && 
+               !record.signedBackIn;
+      });
+      
+      // Update sign-in button status
+      const signInButton = document.getElementById("signin");
+      if (!activeSignOut) {
+        // User is not signed out, disable the sign-in button
+        signInButton.classList.add("disabled");
+      } else {
+        // User is signed out, enable the sign-in button
+        signInButton.classList.remove("disabled");
+      }
+    }
+    
+    // Get user name
+    function getUserName() {
+      // For simplicity, we'll use a fixed name or get it from local storage
+      // In a real app, you would use proper authentication/user identification
+      return localStorage.getItem('userName') || "Student";
+    }
+    
+    // Set up real-time updates
+    function setupRealtimeUpdates() {
+      db.collection('signOutApp').doc('userData')
+        .onSnapshot((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            
+            // Convert string dates back to Date objects
+            if (data.signOutRecords) {
+              data.signOutRecords.forEach(record => {
+                record.date = new Date(record.date);
+                if (record.endDate) record.endDate = new Date(record.endDate);
+              });
+            }
+            
+            if (data.signInRecords) {
+              data.signInRecords.forEach(record => {
+                record.date = new Date(record.date);
+              });
+            }
+            
+            // Update our userData with the new data
+            userData = data;
+            
+            // Check sign-in status
+            checkUserSignedInStatus();
+          }
+        });
+    }
+    
+    
+    // Initialize on page load
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
