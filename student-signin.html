@@ -8,22 +8,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   
-  <!-- Initialize Firebase -->
-  <script>
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyAEfc8pQ0UHiIm9XQSYbKgI2IhOuP1w0do",
-      authDomain: "ez-signout-b1f95.firebaseapp.com",
-      projectId: "ez-signout-b1f95",
-      storageBucket: "ez-signout-b1f95.firebasestorage.app",
-      messagingSenderId: "747672158416",
-      appId: "1:747672158416:web:dbf4f85c5acfb5c9785ed5"
-    };
-  
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-  </script>
   <style>
     /* Apple-inspired styling */
     @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
@@ -177,6 +161,13 @@
       margin-bottom: 16px;
     }
     
+    /* Loading indicator */
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: var(--secondary-text-color);
+    }
+    
     /* Utilities */
     .hidden {
       display: none !important;
@@ -210,8 +201,8 @@
       
       <h1>Sign Back In</h1>
       
-      <div id="sign-in-status">
-        <p>Checking sign-out status...</p>
+      <div id="loading" class="loading">
+        Checking sign-out status...
       </div>
       
       <div id="active-sign-out" class="hidden">
@@ -227,119 +218,61 @@
       <div id="no-sign-out" class="hidden">
         <p>You are not currently signed out.</p>
         <p>If you need to sign out, please go to the Sign Out page.</p>
-        <a href="signout.html" class="button">Go to Sign Out</a>
+        <a href="student-signout.html" class="button">Go to Sign Out</a>
       </div>
     </div>
   </div>
 
-  <script>
-    // Data storage
-    let userData = {
-      signOutRecords: [],
-      signInRecords: []
-    };
+  <!-- Import the User Data Manager -->
+  <script type="module">
+    // Import the data manager
+    import userDataManager from './js/userDataManager.js';
+    
+    // Store any active data listeners for cleanup
+    let dataListener = null;
     
     // Initialize the app
     async function init() {
       try {
-        // Load data from Firestore
-        const docRef = db.collection('signOutApp').doc('userData');
-        const doc = await docRef.get();
+        // Show loading state
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('active-sign-out').classList.add('hidden');
+        document.getElementById('no-sign-out').classList.add('hidden');
         
-        if (doc.exists) {
-          const data = doc.data();
-          
-          // Convert string dates back to Date objects
-          if (data.signOutRecords) {
-            data.signOutRecords.forEach(record => {
-              record.date = new Date(record.date);
-              if (record.endDate) record.endDate = new Date(record.endDate);
-            });
-          }
-          
-          if (data.signInRecords) {
-            data.signInRecords.forEach(record => {
-              record.date = new Date(record.date);
-            });
-          }
-          
-          userData = data;
-          
-          // Check if user is signed out and update UI
-          checkSignOutStatus();
-        } else {
-          // Initialize with empty data if document doesn't exist
-          userData = {
-            signOutRecords: [],
-            signInRecords: []
-          };
-          
-          // Create the document
-          await docRef.set(userData);
-          
-          // Update UI with no active sign-out
-          document.getElementById("sign-in-status").classList.add("hidden");
-          document.getElementById("no-sign-out").classList.remove("hidden");
-        }
+        // Initialize the data manager
+        await userDataManager.initialize();
+        
+        // Check if user is signed out and update UI
+        checkSignOutStatus();
         
         // Set up real-time updates
-        setupRealtimeUpdates();
+        dataListener = userDataManager.addDataListener(() => {
+          checkSignOutStatus();
+        });
       } catch (error) {
-        console.error("Error loading data:", error);
-        
-        // Fallback to empty data structure
-        userData = {
-          signOutRecords: [],
-          signInRecords: []
-        };
-        
-        // Update UI with error message
-        document.getElementById("sign-in-status").innerHTML = 
-          "<p>Error loading data. Please try again later.</p>";
+        console.error("Error initializing:", error);
+        document.getElementById('loading').textContent = "Error loading data. Please refresh the page.";
       }
-    }
-    
-    // Format date for display
-    function formatDate(date) {
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-    }
-    
-    // Format time for display
-    function formatTime(date) {
-      return date.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
     }
     
     // Check if user is currently signed out
     function checkSignOutStatus() {
       const userName = getUserName();
-      const now = new Date();
       
-      // Find active sign-out records for the current user
-      const activeSignOut = userData.signOutRecords.find(record => {
-        return record.user === userName && 
-               record.date <= now && 
-               (!record.endDate || record.endDate >= now) && 
-               !record.signedBackIn;
-      });
+      // Get active sign-out details
+      const activeSignOut = userDataManager.getActiveSignOutDetails(userName);
       
       // Hide the loading status
-      document.getElementById("sign-in-status").classList.add("hidden");
+      document.getElementById('loading').style.display = 'none';
       
       if (activeSignOut) {
         // User is signed out, show the active sign-out details
-        document.getElementById("active-sign-out").classList.remove("hidden");
+        document.getElementById('active-sign-out').classList.remove('hidden');
+        document.getElementById('no-sign-out').classList.add('hidden');
         
         // Format the sign-out details
         let detailsHTML = `
-          <p>You signed out at ${formatTime(activeSignOut.date)} on ${formatDate(activeSignOut.date)}.</p>
+          <p>You signed out at ${userDataManager.formatTime(activeSignOut.date)} on ${userDataManager.formatDate(activeSignOut.date)}.</p>
         `;
         
         if (activeSignOut.endDate) {
@@ -351,7 +284,7 @@
           if (isSameDay) {
             detailsHTML += `<p>Your sign-out is scheduled until the end of the day.</p>`;
           } else {
-            detailsHTML += `<p>Your sign-out is scheduled until ${formatDate(activeSignOut.endDate)}.</p>`;
+            detailsHTML += `<p>Your sign-out is scheduled until ${userDataManager.formatDate(activeSignOut.endDate)}.</p>`;
           }
         }
         
@@ -359,109 +292,58 @@
           detailsHTML += `<p>This is a recurring weekly sign-out.</p>`;
         }
         
-        document.getElementById("sign-out-details").innerHTML = detailsHTML;
+        if (activeSignOut.comment) {
+          detailsHTML += `<p>Comment: "${activeSignOut.comment}"</p>`;
+        }
+        
+        document.getElementById('sign-out-details').innerHTML = detailsHTML;
       } else {
         // User is not signed out
-        document.getElementById("no-sign-out").classList.remove("hidden");
+        document.getElementById('active-sign-out').classList.add('hidden');
+        document.getElementById('no-sign-out').classList.remove('hidden');
       }
     }
     
     // Sign the user back in
-    function signBackIn() {
+    async function signBackIn() {
       const userName = getUserName();
-      const now = new Date();
       
-      // Update sign-out records
-      let foundActive = false;
-      userData.signOutRecords.forEach(record => {
-        if (record.user === userName && 
-            record.date <= now && 
-            (!record.endDate || record.endDate >= now) && 
-            !record.signedBackIn) {
-          record.signedBackIn = true;
-          foundActive = true;
-        }
-      });
-      
-      if (foundActive) {
-        // Add sign-in record
-        userData.signInRecords.push({
-          user: userName,
-          date: now
-        });
-        
-        // Save data
-        saveData();
-        
-        // Show success message and redirect
+      try {
+        await userDataManager.signIn(userName);
         alert("You have been signed back in successfully.");
         window.location.href = "student-ui.html";
-      } else {
-        // No active sign-out found
-        alert("You are not currently signed out.");
-        // Update UI
-        document.getElementById("active-sign-out").classList.add("hidden");
-        document.getElementById("no-sign-out").classList.remove("hidden");
+      } catch (error) {
+        console.error("Error signing in:", error);
+        alert("Failed to sign in. Please try again.");
+        
+        // Refresh the UI
+        checkSignOutStatus();
       }
     }
     
-    // Get user name
+    // Get user name from localStorage
     function getUserName() {
-      // For simplicity, we'll use a fixed name or get it from local storage
-      // In a real app, you would use proper authentication/user identification
       return localStorage.getItem('userName') || "Student";
     }
     
-    // Save data to Firestore
-    function saveData() {
-      try {
-        // Create a serializable copy
-        const serializableData = JSON.parse(JSON.stringify(userData));
-        
-        // Save to Firestore
-        db.collection('signOutApp').doc('userData').set(serializableData);
-      } catch (error) {
-        console.error("Error saving data:", error);
+    // Cleanup function for when page unloads
+    function cleanup() {
+      // Remove data listener
+      if (dataListener) {
+        dataListener();
       }
     }
     
-    // Set up real-time updates
-    function setupRealtimeUpdates() {
-      db.collection('signOutApp').doc('userData')
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
-            
-            // Convert string dates back to Date objects
-            if (data.signOutRecords) {
-              data.signOutRecords.forEach(record => {
-                record.date = new Date(record.date);
-                if (record.endDate) record.endDate = new Date(record.endDate);
-              });
-            }
-            
-            if (data.signInRecords) {
-              data.signInRecords.forEach(record => {
-                record.date = new Date(record.date);
-              });
-            }
-            
-            // Update our userData with the new data
-            userData = data;
-            
-            // Check sign-out status again
-            checkSignOutStatus();
-          }
-        });
-    }
+    // Initialize on page load
+    document.addEventListener("DOMContentLoaded", init);
     
-    // Event listeners setup
+    // Set up sign-in button event listener
     document.addEventListener("DOMContentLoaded", function() {
-      init();
-      
-      // Sign in button click
       document.getElementById("sign-in-button").addEventListener("click", signBackIn);
     });
+    
+    // Cleanup on page unload
+    window.addEventListener("beforeunload", cleanup);
   </script>
 </body>
 </html>

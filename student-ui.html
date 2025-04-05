@@ -8,22 +8,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   
-  <!-- Initialize Firebase -->
-  <script>
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyAEfc8pQ0UHiIm9XQSYbKgI2IhOuP1w0do",
-      authDomain: "ez-signout-b1f95.firebaseapp.com",
-      projectId: "ez-signout-b1f95",
-      storageBucket: "ez-signout-b1f95.firebasestorage.app",
-      messagingSenderId: "747672158416",
-      appId: "1:747672158416:web:dbf4f85c5acfb5c9785ed5"
-    };
-  
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-  </script>
   <style>
     /* Apple-inspired styling */
     @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
@@ -159,6 +143,13 @@
       box-shadow: var(--shadow);
     }
     
+    /* Loading indicator */
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: var(--secondary-text-color);
+    }
+    
     /* Mobile optimizations */
     @media (max-width: 767px) {
       .wrapper {
@@ -188,7 +179,11 @@
     <div class="container">
       <h1>Student Dashboard</h1>
       
-      <div class="squares-container">
+      <div id="loading" class="loading">
+        Loading data...
+      </div>
+      
+      <div id="dashboard-content" class="squares-container" style="display: none;">
         <a href="student-calendar.html" class="square" id="signout-calendar">
           <span class="square-icon">📅</span>
           Calendar
@@ -205,75 +200,54 @@
     </div>
   </div>
 
-  <script>
-    // Data storage
-    let userData = {
-      signOutRecords: [],
-      signInRecords: []
-    };
+  <!-- Import the User Data Manager -->
+  <script type="module">
+    // Import the data manager
+    import userDataManager from './js/userDataManager.js';
+    
+    // Expose certain functions to make them available to inline event handlers
+    window.viewUserDetails = viewUserDetails;
+    
+    // Store any active data listeners for cleanup
+    let dataListener = null;
     
     // Initialize the app
     async function init() {
       try {
-        // Load data from Firestore
-        const docRef = db.collection('signOutApp').doc('userData');
-        const doc = await docRef.get();
+        // Show loading state
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('dashboard-content').style.display = 'none';
         
-        if (doc.exists) {
-          const data = doc.data();
-          
-          // Convert string dates back to Date objects
-          if (data.signOutRecords) {
-            data.signOutRecords.forEach(record => {
-              record.date = new Date(record.date);
-              if (record.endDate) record.endDate = new Date(record.endDate);
-            });
-          }
-          
-          if (data.signInRecords) {
-            data.signInRecords.forEach(record => {
-              record.date = new Date(record.date);
-            });
-          }
-          
-          userData = data;
-          
-          // Check if user is currently signed out
-          checkUserSignedInStatus();
-        } else {
-          // Initialize with empty data if document doesn't exist
-          userData = {
-            signOutRecords: [],
-            signInRecords: []
-          };
-          
-          // Create the document
-          await docRef.set(userData);
-        }
+        // Initialize the data manager
+        await userDataManager.initialize();
+        
+        // Check if user is currently signed out
+        checkUserSignedInStatus();
         
         // Set up real-time updates
-        setupRealtimeUpdates();
+        dataListener = userDataManager.addDataListener(() => {
+          checkUserSignedInStatus();
+        });
+        
+        // Hide loading state, show content
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('dashboard-content').style.display = 'grid';
       } catch (error) {
-        console.error("Error loading data:", error);
+        console.error("Error initializing:", error);
+        document.getElementById('loading').textContent = "Error loading data. Please refresh the page.";
       }
     }
     
     // Check if user is currently signed out
     function checkUserSignedInStatus() {
       const userName = getUserName();
-      const now = new Date();
       
-      // Find if there's an active sign-out for the current user
-      const activeSignOut = userData.signOutRecords.find(record => {
-        return record.user === userName && 
-               record.date <= now && 
-               (!record.endDate || record.endDate >= now) && 
-               !record.signedBackIn;
-      });
+      // Check if user is signed out
+      const isSignedOut = userDataManager.isUserSignedOut(userName);
       
       // Update sign-in button status
       const signInButton = document.getElementById("signin");
-      if (!activeSignOut) {
+      if (!isSignedOut) {
         // User is not signed out, disable the sign-in button
         signInButton.classList.add("disabled");
       } else {
@@ -282,46 +256,31 @@
       }
     }
     
-    // Get user name
+    // Get user name from localStorage
     function getUserName() {
-      // For simplicity, we'll use a fixed name or get it from local storage
-      // In a real app, you would use proper authentication/user identification
       return localStorage.getItem('userName') || "Student";
     }
     
-    // Set up real-time updates
-    function setupRealtimeUpdates() {
-      db.collection('signOutApp').doc('userData')
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
-            
-            // Convert string dates back to Date objects
-            if (data.signOutRecords) {
-              data.signOutRecords.forEach(record => {
-                record.date = new Date(record.date);
-                if (record.endDate) record.endDate = new Date(record.endDate);
-              });
-            }
-            
-            if (data.signInRecords) {
-              data.signInRecords.forEach(record => {
-                record.date = new Date(record.date);
-              });
-            }
-            
-            // Update our userData with the new data
-            userData = data;
-            
-            // Check sign-in status
-            checkUserSignedInStatus();
-          }
-        });
+    // View user details (not used in this page, but included for completeness)
+    function viewUserDetails(username) {
+      // Store selected user in localStorage for the details page
+      localStorage.setItem('selectedUser', username);
+      window.location.href = "user-details.html";
     }
     
+    // Cleanup function for when page unloads
+    function cleanup() {
+      // Remove data listener
+      if (dataListener) {
+        dataListener();
+      }
+    }
     
     // Initialize on page load
     document.addEventListener("DOMContentLoaded", init);
+    
+    // Cleanup on page unload
+    window.addEventListener("beforeunload", cleanup);
   </script>
 </body>
 </html>

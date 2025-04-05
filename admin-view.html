@@ -8,22 +8,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   
-  <!-- Initialize Firebase -->
-  <script>
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyAEfc8pQ0UHiIm9XQSYbKgI2IhOuP1w0do",
-      authDomain: "ez-signout-b1f95.firebaseapp.com",
-      projectId: "ez-signout-b1f95",
-      storageBucket: "ez-signout-b1f95.firebasestorage.app",
-      messagingSenderId: "747672158416",
-      appId: "1:747672158416:web:dbf4f85c5acfb5c9785ed5"
-    };
-  
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-  </script>
   <style>
     /* Apple-inspired styling */
     @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
@@ -459,6 +443,13 @@
       box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
     }
     
+    /* Loading indicator */
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: var(--secondary-text-color);
+    }
+    
     /* Utilities */
     .hidden {
       display: none !important;
@@ -517,6 +508,11 @@
         <button id="settings-tab" onclick="showTab('settings')">Settings</button>
       </div>
       
+      <!-- Loading Indicator -->
+      <div id="loading" class="loading">
+        Loading data...
+      </div>
+      
       <!-- Stats Section -->
       <div id="stats-content" class="tab-content hidden">
         <div class="stats-section">
@@ -570,7 +566,7 @@
       </div>
       
       <!-- Users List Section -->
-      <div id="users-content" class="tab-content">
+      <div id="users-content" class="tab-content hidden">
         <!-- Search -->
         <div class="search-container">
           <input type="text" id="user-search" class="search-input" placeholder="Search users..." onkeyup="searchUsers()">
@@ -649,13 +645,27 @@
     </div>
   </div>
 
-  <script>
-    // Data storage
-    let userData = {
-      signOutRecords: [],
-      signInRecords: []
-    };
+  <!-- Import the User Data Manager -->
+  <script type="module">
+    // Import the data manager
+    import userDataManager from './js/userDataManager.js';
     
+    // Expose functions to make them accessible to inline event handlers
+    window.showTab = showTab;
+    window.viewUserDetails = viewUserDetails;
+    window.backToUserList = backToUserList;
+    window.setUserDetailView = setUserDetailView;
+    window.changeUserDetailDate = changeUserDetailDate;
+    window.changeStatsMonth = changeStatsMonth;
+    window.searchUsers = searchUsers;
+    window.confirmDeleteUserData = confirmDeleteUserData;
+    window.confirmClearAllData = confirmClearAllData;
+    window.exportAllData = exportAllData;
+    
+    // Store any active data listeners for cleanup
+    let dataListener = null;
+    
+    // Current selected user and view state
     let currentSelectedUser = "";
     let userDetailDate = new Date();
     let statsMonth = new Date();
@@ -663,76 +673,53 @@
     
     // Initialize the app
     async function init() {
-      // Set dates to today
-      const today = new Date();
-      userDetailDate = new Date(today);
-      statsMonth = new Date(today);
-      
-      document.getElementById("user-detail-date").textContent = formatDate(userDetailDate);
-      document.getElementById("stats-current-month").textContent = formatMonth(statsMonth);
-      
       try {
-        // Load data from Firestore
-        const docRef = db.collection('signOutApp').doc('userData');
-        const doc = await docRef.get();
+        // Show loading state
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('users-content').classList.add('hidden');
+        document.getElementById('stats-content').classList.add('hidden');
+        document.getElementById('settings-content').classList.add('hidden');
         
-        if (doc.exists) {
-          const data = doc.data();
-          
-          // Convert string dates back to Date objects
-          if (data.signOutRecords) {
-            data.signOutRecords.forEach(record => {
-              record.date = new Date(record.date);
-              if (record.endDate) record.endDate = new Date(record.endDate);
-            });
-          }
-          
-          if (data.signInRecords) {
-            data.signInRecords.forEach(record => {
-              record.date = new Date(record.date);
-            });
-          }
-          
-          userData = data;
-          
-          // Populate user list
+        // Set dates to today
+        const today = new Date();
+        userDetailDate = new Date(today);
+        statsMonth = new Date(today);
+        
+        document.getElementById("user-detail-date").textContent = userDataManager.formatDate(userDetailDate);
+        document.getElementById("stats-current-month").textContent = formatMonth(statsMonth);
+        
+        // Initialize data manager
+        await userDataManager.initialize();
+        
+        // Hide loading, show users tab
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('users-content').classList.remove('hidden');
+        
+        // Populate user list
+        populateUserList();
+        
+        // Update stats
+        updateStats();
+        
+        // Set up real-time updates
+        dataListener = userDataManager.addDataListener(() => {
           populateUserList();
           updateStats();
           
-          // Set up real-time updates
-          setupRealtimeUpdates();
-        } else {
-          // Initialize with empty data if document doesn't exist
-          userData = {
-            signOutRecords: [],
-            signInRecords: []
-          };
-          
-          // Create the document
-          await docRef.set(userData);
-          populateUserList();
-        }
+          // Update user details if viewing
+          if (currentSelectedUser) {
+            updateUserStats(currentSelectedUser);
+            if (userDetailView === 'calendar') {
+              updateUserDetailCalendar();
+            } else {
+              updateUserAllRecords();
+            }
+          }
+        });
       } catch (error) {
-        console.error("Error loading data:", error);
-        
-        // Fallback to empty data
-        userData = {
-          signOutRecords: [],
-          signInRecords: []
-        };
-        
-        populateUserList();
+        console.error("Error initializing:", error);
+        document.getElementById('loading').textContent = "Error loading data. Please refresh the page.";
       }
-    }
-    
-    // Format date for display
-    function formatDate(date) {
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
     }
     
     // Format month for display
@@ -741,19 +728,6 @@
         year: 'numeric', 
         month: 'long'
       });
-    }
-    
-    // Format time for display
-    function formatTime(date) {
-      return date.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-    }
-    
-    // Format date for comparison
-    function getDateString(date) {
-      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
     }
     
     // Show Tab
@@ -783,17 +757,8 @@
       const userList = document.getElementById('user-list');
       userList.innerHTML = '';
       
-      // Get unique users
-      const users = new Set();
-      userData.signOutRecords.forEach(record => {
-        if (record.user) users.add(record.user);
-      });
-      userData.signInRecords.forEach(record => {
-        if (record.user) users.add(record.user);
-      });
-      
-      // Convert Set to Array and sort alphabetically
-      const usersArray = Array.from(users).sort();
+      // Get all users
+      const usersArray = userDataManager.getAllUsers();
       
       if (usersArray.length === 0) {
         userList.innerHTML = '<li class="user-item">No users found.</li>';
@@ -802,16 +767,11 @@
       
       // Create list items for each user
       usersArray.forEach(username => {
-        const userSignOuts = userData.signOutRecords.filter(record => record.user === username);
-        const userSignIns = userData.signInRecords.filter(record => record.user === username);
+        const userSignOuts = userDataManager.getUserSignOutRecords(username);
+        const userSignIns = userDataManager.getUserSignInRecords(username);
         
         // Check if user is currently signed out
-        const now = new Date();
-        const isSignedOut = userSignOuts.some(record => 
-          record.date <= now && 
-          (!record.endDate || record.endDate >= now) && 
-          !record.signedBackIn
-        );
+        const isSignedOut = userDataManager.isUserSignedOut(username);
         
         // Get last activity date
         let lastActivity = null;
@@ -828,7 +788,7 @@
             <div class="user-name">${username}</div>
             <div class="user-stats">
               ${userSignOuts.length} sign-outs, ${userSignIns.length} sign-ins
-              ${lastActivity ? `· Last activity: ${formatDate(lastActivity)}` : ''}
+              ${lastActivity ? `· Last activity: ${userDataManager.formatDate(lastActivity)}` : ''}
               ${isSignedOut ? '<span style="color: var(--signout-color); font-weight: 500;">· Currently signed out</span>' : ''}
             </div>
           </div>
@@ -859,6 +819,37 @@
       }
     }
     
+    // Confirm Delete User
+    function confirmDeleteUser(username) {
+      if (confirm(`Are you sure you want to delete all data for user "${username}"? This action cannot be undone.`)) {
+        deleteUserData(username);
+      }
+    }
+    
+    // Delete User Data
+    async function deleteUserData(username) {
+      if (!username) return;
+      
+      try {
+        // Delete user data using the data manager
+        await userDataManager.deleteUserData(username);
+        
+        // If viewing user details, go back to list
+        if (currentSelectedUser === username) {
+          backToUserList();
+        }
+        
+        // Update UI
+        populateUserList();
+        updateStats();
+        
+        alert(`All data for user "${username}" has been deleted.`);
+      } catch (error) {
+        console.error("Error deleting user data:", error);
+        alert("Failed to delete user data. Please try again.");
+      }
+    }
+    
     // View User Details
     function viewUserDetails(username) {
       currentSelectedUser = username;
@@ -883,19 +874,14 @@
     
     // Update User Statistics
     function updateUserStats(username) {
-      const userSignOuts = userData.signOutRecords.filter(record => record.user === username);
-      const userSignIns = userData.signInRecords.filter(record => record.user === username);
+      const userSignOuts = userDataManager.getUserSignOutRecords(username);
+      const userSignIns = userDataManager.getUserSignInRecords(username);
       
       // Update sign-out count
       document.getElementById('user-total-signouts').textContent = userSignOuts.length;
       
       // Check if user is currently signed out
-      const now = new Date();
-      const isSignedOut = userSignOuts.some(record => 
-        record.date <= now && 
-        (!record.endDate || record.endDate >= now) && 
-        !record.signedBackIn
-      );
+      const isSignedOut = userDataManager.isUserSignedOut(username);
       
       // Update sign-out status
       document.getElementById('user-status').textContent = isSignedOut ? 'Signed Out' : 'Signed In';
@@ -906,7 +892,7 @@
       const allUserRecords = [...userSignOuts, ...userSignIns];
       if (allUserRecords.length > 0) {
         lastActivity = new Date(Math.max(...allUserRecords.map(record => record.date.getTime())));
-        document.getElementById('user-last-activity').textContent = formatDate(lastActivity);
+        document.getElementById('user-last-activity').textContent = userDataManager.formatDate(lastActivity);
       } else {
         document.getElementById('user-last-activity').textContent = 'Never';
       }
@@ -946,7 +932,7 @@
         userDetailDate = new Date(userDetailDate);
         userDetailDate.setDate(userDetailDate.getDate() + offset);
       }
-      document.getElementById('user-detail-date').textContent = formatDate(userDetailDate);
+      document.getElementById('user-detail-date').textContent = userDataManager.formatDate(userDetailDate);
       updateUserDetailCalendar();
     }
     
@@ -961,18 +947,14 @@
       signOutList.innerHTML = '';
       signInList.innerHTML = '';
       
-      // Filter records for the selected user and date
-      const dateStr = getDateString(userDetailDate);
+      // Get sign-out and sign-in records for the selected date and user
+      const signOutRecords = userDataManager.getSignOutRecordsForDate(userDetailDate, currentSelectedUser);
+      const signInRecords = userDataManager.getSignInRecordsForDate(userDetailDate, currentSelectedUser);
       
       // Add sign-out records
-      const signOutRecords = userData.signOutRecords.filter(record => {
-        return record.user === currentSelectedUser && 
-               (getDateString(record.date) === dateStr || 
-                (record.endDate && record.date <= userDetailDate && record.endDate >= userDetailDate));
-      });
-      
       if (signOutRecords.length > 0) {
-        signOutRecords.sort((a, b) => b.date - a.date); // Sort by date descending
+        // Sort by date descending
+        signOutRecords.sort((a, b) => b.date - a.date);
         
         signOutRecords.forEach((record) => {
           const li = document.createElement('li');
@@ -980,10 +962,10 @@
           
           let endDateText = '';
           if (record.endDate) {
-            if (getDateString(record.date) === getDateString(record.endDate)) {
+            if (userDataManager.getDateString(record.date) === userDataManager.getDateString(record.endDate)) {
               endDateText = ' until end of day';
             } else {
-              endDateText = ` until ${formatDate(record.endDate)}`;
+              endDateText = ` until ${userDataManager.formatDate(record.endDate)}`;
             }
           }
           
@@ -993,7 +975,17 @@
           
           const status = record.signedBackIn ? ' (Signed back in)' : '';
           
-          li.textContent = `Signed out at ${formatTime(record.date)}${endDateText}${status}`;
+          li.textContent = `Signed out at ${userDataManager.formatTime(record.date)}${endDateText}${status}`;
+          
+          // Add comment if available
+          if (record.comment) {
+            const commentDiv = document.createElement('div');
+            commentDiv.style.marginTop = '8px';
+            commentDiv.style.fontStyle = 'italic';
+            commentDiv.textContent = `Comment: "${record.comment}"`;
+            li.appendChild(commentDiv);
+          }
+          
           signOutList.appendChild(li);
         });
       } else {
@@ -1003,17 +995,14 @@
       }
       
       // Add sign-in records
-      const signInRecords = userData.signInRecords.filter(record => {
-        return record.user === currentSelectedUser && getDateString(record.date) === dateStr;
-      });
-      
       if (signInRecords.length > 0) {
-        signInRecords.sort((a, b) => b.date - a.date); // Sort by date descending
+        // Sort by date descending
+        signInRecords.sort((a, b) => b.date - a.date);
         
         signInRecords.forEach(record => {
           const li = document.createElement('li');
           li.className = 'sign-in';
-          li.textContent = `Signed back in at ${formatTime(record.date)}`;
+          li.textContent = `Signed back in at ${userDataManager.formatTime(record.date)}`;
           signInList.appendChild(li);
         });
       } else {
@@ -1034,13 +1023,14 @@
       allSignOutsList.innerHTML = '';
       allSignInsList.innerHTML = '';
       
-      // Filter all records for the selected user
-      const userSignOuts = userData.signOutRecords.filter(record => record.user === currentSelectedUser);
-      const userSignIns = userData.signInRecords.filter(record => record.user === currentSelectedUser);
+      // Get all sign-out and sign-in records for the user
+      const userSignOuts = userDataManager.getUserSignOutRecords(currentSelectedUser);
+      const userSignIns = userDataManager.getUserSignInRecords(currentSelectedUser);
       
       // Add all sign-out records
       if (userSignOuts.length > 0) {
-        userSignOuts.sort((a, b) => b.date - a.date); // Sort by date descending
+        // Sort by date descending
+        userSignOuts.sort((a, b) => b.date - a.date);
         
         userSignOuts.forEach((record) => {
           const li = document.createElement('li');
@@ -1048,10 +1038,10 @@
           
           let endDateText = '';
           if (record.endDate) {
-            if (getDateString(record.date) === getDateString(record.endDate)) {
+            if (userDataManager.getDateString(record.date) === userDataManager.getDateString(record.endDate)) {
               endDateText = ' until end of day';
             } else {
-              endDateText = ` until ${formatDate(record.endDate)}`;
+              endDateText = ` until ${userDataManager.formatDate(record.endDate)}`;
             }
           }
           
@@ -1061,7 +1051,17 @@
           
           const status = record.signedBackIn ? ' (Signed back in)' : '';
           
-          li.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}${endDateText}${status}`;
+          li.textContent = `${userDataManager.formatDate(record.date)} at ${userDataManager.formatTime(record.date)}${endDateText}${status}`;
+          
+          // Add comment if available
+          if (record.comment) {
+            const commentDiv = document.createElement('div');
+            commentDiv.style.marginTop = '8px';
+            commentDiv.style.fontStyle = 'italic';
+            commentDiv.textContent = `Comment: "${record.comment}"`;
+            li.appendChild(commentDiv);
+          }
+          
           allSignOutsList.appendChild(li);
         });
       } else {
@@ -1072,12 +1072,13 @@
       
       // Add all sign-in records
       if (userSignIns.length > 0) {
-        userSignIns.sort((a, b) => b.date - a.date); // Sort by date descending
+        // Sort by date descending
+        userSignIns.sort((a, b) => b.date - a.date);
         
         userSignIns.forEach(record => {
           const li = document.createElement('li');
           li.className = 'sign-in';
-          li.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}`;
+          li.textContent = `${userDataManager.formatDate(record.date)} at ${userDataManager.formatTime(record.date)}`;
           allSignInsList.appendChild(li);
         });
       } else {
@@ -1104,29 +1105,27 @@
       const now = new Date();
       
       // Calculate total users
-      const uniqueUsers = new Set();
-      userData.signOutRecords.forEach(record => {
-        if (record.user) uniqueUsers.add(record.user);
-      });
-      userData.signInRecords.forEach(record => {
-        if (record.user) uniqueUsers.add(record.user);
-      });
+      const uniqueUsers = userDataManager.getAllUsers().length;
+      
+      // Get all sign-out records
+      const allSignOutRecords = userDataManager.getData().signOutRecords;
       
       // Calculate total sign-outs
-      const totalSignOuts = userData.signOutRecords.length;
+      const totalSignOuts = allSignOutRecords.length;
       
-      // Calculate currently signed out
-      const currentlySignedOut = userData.signOutRecords.filter(record => 
-        record.date <= now && 
-        (!record.endDate || record.endDate >= now) && 
-        !record.signedBackIn
-      ).length;
+      // Calculate currently signed out users
+      let currentlySignedOut = 0;
+      userDataManager.getAllUsers().forEach(username => {
+        if (userDataManager.isUserSignedOut(username)) {
+          currentlySignedOut++;
+        }
+      });
       
       // Calculate average sign-outs per day
       let avgSignOuts = 0;
       if (totalSignOuts > 0) {
         // Get the earliest and latest dates
-        const dates = userData.signOutRecords.map(record => record.date.getTime());
+        const dates = allSignOutRecords.map(record => record.date.getTime());
         const earliestDate = new Date(Math.min(...dates));
         const latestDate = new Date(Math.max(...dates));
         
@@ -1137,40 +1136,10 @@
       }
       
       // Update the DOM
-      document.getElementById('total-users').textContent = uniqueUsers.size;
+      document.getElementById('total-users').textContent = uniqueUsers;
       document.getElementById('total-signouts').textContent = totalSignOuts;
       document.getElementById('current-signouts').textContent = currentlySignedOut;
       document.getElementById('avg-signouts').textContent = avgSignOuts;
-    }
-    
-    // Confirm Delete User
-    function confirmDeleteUser(username) {
-      if (confirm(`Are you sure you want to delete all data for user "${username}"? This action cannot be undone.`)) {
-        deleteUserData(username);
-      }
-    }
-    
-    // Delete User Data
-    function deleteUserData(username) {
-      if (!username) return;
-      
-      // Remove all user's records
-      userData.signOutRecords = userData.signOutRecords.filter(record => record.user !== username);
-      userData.signInRecords = userData.signInRecords.filter(record => record.user !== username);
-      
-      // Save to Firebase
-      saveData();
-      
-      // If viewing user details, go back to list
-      if (currentSelectedUser === username) {
-        backToUserList();
-      }
-      
-      // Update UI
-      populateUserList();
-      updateStats();
-      
-      alert(`All data for user "${username}" has been deleted.`);
     }
     
     // Confirm Delete User Data from details view
@@ -1190,29 +1159,28 @@
     }
     
     // Clear All Data
-    function clearAllData() {
-      // Reset data
-      userData = {
-        signOutRecords: [],
-        signInRecords: []
-      };
-      
-      // Save to Firebase
-      saveData();
-      
-      // Update UI
-      populateUserList();
-      updateStats();
-      
-      // Go back to users tab
-      showTab('users');
-      
-      alert("All system data has been deleted.");
+    async function clearAllData() {
+      try {
+        // Clear all data using the data manager
+        await userDataManager.clearAllData();
+        
+        // Update UI
+        populateUserList();
+        updateStats();
+        
+        // Go back to users tab
+        showTab('users');
+        
+        alert("All system data has been deleted.");
+      } catch (error) {
+        console.error("Error clearing data:", error);
+        alert("Failed to clear data. Please try again.");
+      }
     }
     
     // Export All Data
     function exportAllData() {
-      const dataStr = JSON.stringify(userData, null, 2);
+      const dataStr = userDataManager.exportAllData();
       const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
       
       const exportFileName = `ez-signout-export-${new Date().toISOString().split('T')[0]}.json`;
@@ -1223,62 +1191,17 @@
       linkElement.click();
     }
     
-    // Save data to Firestore
-    function saveData() {
-      try {
-        // Create a serializable copy
-        const serializableData = JSON.parse(JSON.stringify(userData));
-        
-        // Save to Firestore
-        db.collection('signOutApp').doc('userData').set(serializableData);
-      } catch (error) {
-        console.error("Error saving data:", error);
+    // Cleanup function for when page unloads
+    function cleanup() {
+      // Remove data listener
+      if (dataListener) {
+        dataListener();
       }
-    }
-    
-    // Set up real-time updates
-    function setupRealtimeUpdates() {
-      db.collection('signOutApp').doc('userData')
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
-            
-            // Convert string dates back to Date objects
-            if (data.signOutRecords) {
-              data.signOutRecords.forEach(record => {
-                record.date = new Date(record.date);
-                if (record.endDate) record.endDate = new Date(record.endDate);
-              });
-            }
-            
-            if (data.signInRecords) {
-              data.signInRecords.forEach(record => {
-                record.date = new Date(record.date);
-              });
-            }
-            
-            // Update our userData with the new data
-            userData = data;
-            
-            // Update the UI
-            populateUserList();
-            updateStats();
-            
-            // Update user details if viewing
-            if (currentSelectedUser) {
-              updateUserStats(currentSelectedUser);
-              if (userDetailView === 'calendar') {
-                updateUserDetailCalendar();
-              } else {
-                updateUserAllRecords();
-              }
-            }
-          }
-        });
     }
     
     // Initialize on page load
     document.addEventListener("DOMContentLoaded", init);
+    
+    // Cleanup on page unload
+    window.addEventListener("beforeunload", cleanup);
   </script>
-</body>
-</html>
