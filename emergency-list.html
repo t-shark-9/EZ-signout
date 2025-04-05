@@ -286,6 +286,17 @@
       box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
     }
     
+    /* Alert banner */
+    .alert-banner {
+      background-color: var(--danger-color);
+      color: white;
+      text-align: center;
+      padding: 12px;
+      margin-bottom: 20px;
+      border-radius: var(--border-radius);
+      font-weight: 500;
+    }
+    
     @media print {
       .no-print {
         display: none !important;
@@ -342,6 +353,10 @@
       <div class="emergency-header">
         <h1>Emergency List</h1>
         <button class="print-button no-print" onclick="window.print()">Print List</button>
+      </div>
+      
+      <div class="alert-banner no-print">
+        EMERGENCY LIST - For quick attendance verification
       </div>
       
       <p class="timestamp">Last updated: <span id="update-time">Loading...</span></p>
@@ -595,34 +610,16 @@
       teachersList.innerHTML = "";
       studentsList.innerHTML = "";
       
-      // Create a set of all users to display
-      const allUsers = new Set();
-      
-      // Add all predefined users from availableUsers array
-      availableUsers.forEach(user => {
-        allUsers.add(user.name);
-      });
-      
-      // Add any additional users from sign-out/sign-in records
-      userData.signOutRecords.forEach(record => {
-        if (record.user) allUsers.add(record.user);
-      });
-      
-      userData.signInRecords.forEach(record => {
-        if (record.user) allUsers.add(record.user);
-      });
-      
       // Initialize counters
       let totalPeople = 0;
       let totalPresent = 0;
       let totalAbsent = 0;
       
-      // Process teachers
-      const teachers = Array.from(allUsers).filter(username => {
-        // Check if this user is a teacher based on the availableUsers array
-        const userInfo = availableUsers.find(u => u.name === username);
-        return userInfo && userInfo.role === "Teacher";
-      }).sort();
+      // Process teachers - all teachers from availableUsers array will be shown
+      const teachers = availableUsers
+        .filter(user => user.role === "Teacher")
+        .map(user => user.name)
+        .sort();
       
       teachers.forEach(username => {
         totalPeople++;
@@ -684,12 +681,11 @@
         teachersList.appendChild(row);
       });
       
-      // Process students
-      const students = Array.from(allUsers).filter(username => {
-        // Check if this user is a student or unknown role
-        const userInfo = availableUsers.find(u => u.name === username);
-        return !userInfo || userInfo.role !== "Teacher";
-      }).sort();
+      // Process students - all students from availableUsers array will be shown
+      const students = availableUsers
+        .filter(user => user.role === "12k")
+        .map(user => user.name)
+        .sort();
       
       students.forEach(username => {
         totalPeople++;
