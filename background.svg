@@ -1,0 +1,375 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid slice" onload="initColors()">
+  <script type="text/javascript"><![CDATA[
+    // COLOR PALETTE CONTROLLER
+    // Change this variable to select a color palette (1-5)
+    // Use negative numbers (-1 to -5) for dark mode with the same palette colors
+    let colorPalette = 1;
+    
+    // Color palette definitions
+    const palettes = {
+      1: { // Blue-Green (Default)
+        primary1: "#0064C8",
+        primary2: "#007AFF",
+        accent1: "#34C759",
+        accent2: "#5856D6",
+        accent3: "#FF9500",
+        accent4: "#FF2D55",
+        background: "#f5f5f7"
+      },
+      2: { // Purple-Pink
+        primary1: "#5856D6",
+        primary2: "#AF52DE",
+        accent1: "#FF2D55",
+        accent2: "#FF9500",
+        accent3: "#007AFF",
+        accent4: "#34C759",
+        background: "#f7f5f7"
+      },
+      3: { // Orange-Red
+        primary1: "#FF9500",
+        primary2: "#FF2D55",
+        accent1: "#AF52DE",
+        accent2: "#5856D6",
+        accent3: "#34C759",
+        accent4: "#007AFF",
+        background: "#f7f5f5"
+      },
+      4: { // Green-Teal
+        primary1: "#34C759",
+        primary2: "#00C7BE",
+        accent1: "#007AFF",
+        accent2: "#0064C8",
+        accent3: "#5856D6",
+        accent4: "#FF9500",
+        background: "#f5f7f5"
+      },
+      5: { // Red-Orange
+        primary1: "#FF3B30",
+        primary2: "#FF9500",
+        accent1: "#FFCC00",
+        accent2: "#34C759",
+        accent3: "#5856D6",
+        accent4: "#007AFF",
+        background: "#f7f6f5"
+      }
+    };
+    
+    // Dark background color
+    const darkBackground = "#1d1d1f";
+    
+    function initColors() {
+      // Select positive palette number and determine if dark mode
+      const paletteNum = Math.abs(colorPalette);
+      const isDarkMode = colorPalette < 0;
+      
+      // Default to palette 1 if out of range
+      const selectedPalette = palettes[paletteNum] || palettes[1];
+      
+      // Set background color
+      document.getElementById('background-rect').setAttribute('fill', 
+        isDarkMode ? darkBackground : selectedPalette.background);
+      
+      // Update all gradient and color definitions
+      updateGradient('gradient1', selectedPalette.primary1, selectedPalette.accent1);
+      updateGradient('gradient2', selectedPalette.accent1, selectedPalette.primary2);
+      updateGradient('gradient3', selectedPalette.primary2, selectedPalette.primary1);
+      updateGradient('gradient4', selectedPalette.accent3, selectedPalette.accent4);
+      updateGradient('gradient5', selectedPalette.accent2, selectedPalette.primary2);
+      
+      // Update solid color elements
+      updateSolidColors('.solid-color1', selectedPalette.primary1);
+      updateSolidColors('.solid-color2', selectedPalette.primary2);
+      updateSolidColors('.solid-accent1', selectedPalette.accent1);
+      updateSolidColors('.solid-accent2', selectedPalette.accent2);
+      updateSolidColors('.solid-accent3', selectedPalette.accent3);
+      updateSolidColors('.solid-accent4', selectedPalette.accent4);
+    }
+    
+    function updateGradient(id, color1, color2) {
+      const gradient = document.getElementById(id);
+      if (gradient) {
+        const stops = gradient.getElementsByTagName('stop');
+        if (stops.length >= 2) {
+          stops[0].setAttribute('stop-color', color1);
+          stops[1].setAttribute('stop-color', color2);
+        }
+      }
+    }
+    
+    function updateSolidColors(className, color) {
+      const elements = document.querySelectorAll(className);
+      elements.forEach(element => {
+        if (element.hasAttribute('fill') && element.getAttribute('fill') !== 'none') {
+          element.setAttribute('fill', color);
+        }
+        if (element.hasAttribute('stroke') && element.getAttribute('stroke') !== 'none') {
+          element.setAttribute('stroke', color);
+        }
+      });
+    }
+  ]]></script>
+  
+  <defs>
+    <!-- Gradients for lines -->
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0064C8" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#34C759" stop-opacity="0.7"/>
+    </linearGradient>
+    <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#34C759" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#007AFF" stop-opacity="0.6"/>
+    </linearGradient>
+    <linearGradient id="gradient3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#007AFF" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0064C8" stop-opacity="0.8"/>
+    </linearGradient>
+    <linearGradient id="gradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF9500" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#FF2D55" stop-opacity="0.5"/>
+    </linearGradient>
+    <linearGradient id="gradient5" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#5856D6" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#007AFF" stop-opacity="0.6"/>
+    </linearGradient>
+    
+    <!-- Filters for volumetric effects -->
+    <filter id="blur1" x="-5%" y="-5%" width="110%" height="110%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
+    </filter>
+    <filter id="blur2" x="-5%" y="-5%" width="110%" height="110%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" />
+    </filter>
+    <filter id="glow1" x="-5%" y="-5%" width="110%" height="110%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
+      <feComposite in="SourceGraphic" operator="over" />
+    </filter>
+    <filter id="shadow1" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0064C8" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect id="background-rect" width="1000" height="500" fill="#f5f5f7" />
+  
+  <!-- Volumetric Line 1 with shadow and glow -->
+  <g filter="url(#shadow1)">
+    <path d="M0,150 Q250,50 500,200 T1000,120" fill="none" stroke="url(#gradient1)" stroke-width="6" stroke-linecap="round" filter="url(#blur1)">
+      <animate attributeName="d" 
+        values="M0,150 Q250,50 500,200 T1000,120;
+                M0,170 Q250,280 500,180 T1000,140;
+                M0,150 Q250,50 500,200 T1000,120" 
+        dur="20s" 
+        repeatCount="indefinite" />
+    </path>
+    <path d="M0,150 Q250,50 500,200 T1000,120" fill="none" stroke="url(#gradient1)" stroke-width="2" stroke-linecap="round">
+      <animate attributeName="d" 
+        values="M0,150 Q250,50 500,200 T1000,120;
+                M0,170 Q250,280 500,180 T1000,140;
+                M0,150 Q250,50 500,200 T1000,120" 
+        dur="20s" 
+        repeatCount="indefinite" />
+    </path>
+  </g>
+  
+  <!-- Animated Line 2 with volume -->
+  <g filter="url(#glow1)">
+    <path d="M0,250 Q200,150 400,300 T1000,220" fill="none" stroke="url(#gradient2)" stroke-width="8" stroke-linecap="round" filter="url(#blur2)">
+      <animate attributeName="d" 
+        values="M0,250 Q200,150 400,300 T1000,220;
+                M0,230 Q200,320 400,250 T1000,260;
+                M0,250 Q200,150 400,300 T1000,220" 
+        dur="25s" 
+        repeatCount="indefinite" />
+    </path>
+    <path d="M0,250 Q200,150 400,300 T1000,220" fill="none" stroke="url(#gradient2)" stroke-width="2" stroke-linecap="round">
+      <animate attributeName="d" 
+        values="M0,250 Q200,150 400,300 T1000,220;
+                M0,230 Q200,320 400,250 T1000,260;
+                M0,250 Q200,150 400,300 T1000,220" 
+        dur="25s" 
+        repeatCount="indefinite" />
+    </path>
+  </g>
+  
+  <!-- Animated Line 3 with different shape (more corners) -->
+  <path d="M0,350 Q150,280 250,350 T500,300 T750,350 T1000,320" fill="none" stroke="url(#gradient3)" stroke-width="4" stroke-linecap="round">
+    <animate attributeName="d" 
+      values="M0,350 Q150,280 250,350 T500,300 T750,350 T1000,320;
+              M0,370 Q150,420 250,360 T500,380 T750,340 T1000,360;
+              M0,350 Q150,280 250,350 T500,300 T750,350 T1000,320" 
+      dur="22s" 
+      repeatCount="indefinite" />
+  </path>
+  
+  <!-- Animated Circle -->
+  <circle cx="300" cy="200" r="15" fill="url(#gradient4)" opacity="0.8">
+    <animate attributeName="cx" 
+      values="300;350;320;280;300" 
+      dur="25s" 
+      repeatCount="indefinite" />
+    <animate attributeName="cy" 
+      values="200;250;220;180;200" 
+      dur="20s" 
+      repeatCount="indefinite" />
+    <animate attributeName="r" 
+      values="15;20;18;16;15" 
+      dur="15s" 
+      repeatCount="indefinite" />
+  </circle>
+  
+  <!-- Animated Triangle -->
+  <polygon points="700,150 725,190 675,190" fill="url(#gradient5)" opacity="0.7">
+    <animate attributeName="points" 
+      values="700,150 725,190 675,190;
+              710,140 740,185 680,185;
+              705,155 730,195 680,195;
+              700,150 725,190 675,190" 
+      dur="18s" 
+      repeatCount="indefinite" />
+    <animateTransform 
+      attributeName="transform" 
+      type="rotate" 
+      from="0 700 170" 
+      to="360 700 170" 
+      dur="40s" 
+      repeatCount="indefinite" />
+  </polygon>
+  
+  <!-- Animated Rectangle -->
+  <rect x="500" y="380" width="40" height="25" rx="5" ry="5" fill="#34C759" class="solid-accent1" opacity="0.6">
+    <animate attributeName="x" 
+      values="500;520;480;510;500" 
+      dur="30s" 
+      repeatCount="indefinite" />
+    <animate attributeName="y" 
+      values="380;370;390;375;380" 
+      dur="27s" 
+      repeatCount="indefinite" />
+    <animate attributeName="width" 
+      values="40;45;38;43;40" 
+      dur="20s" 
+      repeatCount="indefinite" />
+    <animate attributeName="height" 
+      values="25;30;22;28;25" 
+      dur="23s" 
+      repeatCount="indefinite" />
+    <animateTransform 
+      attributeName="transform" 
+      type="rotate" 
+      from="0 520 392.5" 
+      to="-360 520 392.5" 
+      dur="45s" 
+      repeatCount="indefinite" />
+  </rect>
+  
+  <!-- Animated Line 4 with dotted pattern -->
+  <path d="M0,100 Q200,180 450,120 T1000,160" fill="none" stroke="#0064C8" class="solid-color1" stroke-width="2" opacity="0.4" stroke-dasharray="1,5">
+    <animate attributeName="d" 
+      values="M0,100 Q200,180 450,120 T1000,160;
+              M0,120 Q200,80 450,140 T1000,120;
+              M0,100 Q200,180 450,120 T1000,160" 
+      dur="18s" 
+      repeatCount="indefinite" />
+  </path>
+  
+  <!-- Animated Line 5 with dashed pattern -->
+  <path d="M0,400 Q250,450 500,380 T1000,420" fill="none" stroke="#34C759" class="solid-accent1" stroke-width="3" opacity="0.4" stroke-dasharray="10,5">
+    <animate attributeName="d" 
+      values="M0,400 Q250,450 500,380 T1000,420;
+              M0,420 Q250,370 500,400 T1000,380;
+              M0,400 Q250,450 500,380 T1000,420" 
+      dur="28s" 
+      repeatCount="indefinite" />
+  </path>
+  
+  <!-- Wavy Line with amplified waves -->
+  <path d="M0,300 C50,320 100,280 150,300 S250,320 300,300 S400,280 450,300 S550,320 600,300 S700,280 750,300 S850,320 900,300 S1000,280 1000,300" 
+        fill="none" stroke="#007AFF" class="solid-color2" stroke-width="2" opacity="0.5">
+    <animate attributeName="d" 
+      values="M0,300 C50,320 100,280 150,300 S250,320 300,300 S400,280 450,300 S550,320 600,300 S700,280 750,300 S850,320 900,300 S1000,280 1000,300;
+              M0,300 C50,280 100,320 150,300 S250,280 300,300 S400,320 450,300 S550,280 600,300 S700,320 750,300 S850,280 900,300 S1000,320 1000,300;
+              M0,300 C50,320 100,280 150,300 S250,320 300,300 S400,280 450,300 S550,320 600,300 S700,280 750,300 S850,320 900,300 S1000,280 1000,300" 
+      dur="15s" 
+      repeatCount="indefinite" />
+  </path>
+  
+  <!-- Animated Hexagon -->
+  <polygon points="850,150 870,130 890,150 890,180 870,200 850,180" fill="#5856D6" class="solid-accent2" opacity="0.5">
+    <animate attributeName="points" 
+      values="850,150 870,130 890,150 890,180 870,200 850,180;
+              845,145 870,125 895,145 895,185 870,205 845,185;
+              855,155 875,135 895,155 895,175 875,195 855,175;
+              850,150 870,130 890,150 890,180 870,200 850,180" 
+      dur="22s" 
+      repeatCount="indefinite" />
+    <animateTransform 
+      attributeName="transform" 
+      type="rotate" 
+      from="0 870 165" 
+      to="360 870 165" 
+      dur="35s" 
+      repeatCount="indefinite" />
+  </polygon>
+  
+  <!-- Animated Diamond -->
+  <polygon points="100,400 120,380 140,400 120,420" fill="#FF9500" class="solid-accent3" opacity="0.4">
+    <animate attributeName="points" 
+      values="100,400 120,380 140,400 120,420;
+              95,395 120,375 145,395 120,425;
+              105,405 125,385 145,405 125,425;
+              100,400 120,380 140,400 120,420" 
+      dur="19s" 
+      repeatCount="indefinite" />
+    <animateTransform 
+      attributeName="transform" 
+      type="rotate" 
+      from="0 120 400" 
+      to="-360 120 400" 
+      dur="30s" 
+      repeatCount="indefinite" />
+  </polygon>
+  
+  <!-- Volumetric gradient blob -->
+  <ellipse cx="400" cy="150" rx="60" ry="40" fill="url(#gradient5)" opacity="0.2" filter="url(#blur2)">
+    <animate attributeName="rx" 
+      values="60;70;55;65;60" 
+      dur="20s" 
+      repeatCount="indefinite" />
+    <animate attributeName="ry" 
+      values="40;35;45;38;40" 
+      dur="23s" 
+      repeatCount="indefinite" />
+    <animate attributeName="cx" 
+      values="400;420;390;410;400" 
+      dur="30s" 
+      repeatCount="indefinite" />
+    <animate attributeName="cy" 
+      values="150;160;145;155;150" 
+      dur="25s" 
+      repeatCount="indefinite" />
+  </ellipse>
+  
+  <!-- Small particles in random motion -->
+  <g>
+    <circle cx="200" cy="100" r="3" fill="#0064C8" class="solid-color1" opacity="0.6">
+      <animate attributeName="cx" values="200;210;190;205;200" dur="15s" repeatCount="indefinite" />
+      <animate attributeName="cy" values="100;110;95;105;100" dur="12s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="600" cy="350" r="4" fill="#34C759" class="solid-accent1" opacity="0.6">
+      <animate attributeName="cx" values="600;615;590;605;600" dur="18s" repeatCount="indefinite" />
+      <animate attributeName="cy" values="350;340;360;345;350" dur="14s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="800" cy="250" r="3" fill="#FF9500" class="solid-accent3" opacity="0.6">
+      <animate attributeName="cx" values="800;810;790;805;800" dur="20s" repeatCount="indefinite" />
+      <animate attributeName="cy" values="250;260;245;255;250" dur="17s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="300" cy="400" r="2" fill="#5856D6" class="solid-accent2" opacity="0.6">
+      <animate attributeName="cx" values="300;310;295;305;300" dur="22s" repeatCount="indefinite" />
+      <animate attributeName="cy" values="400;395;405;398;400" dur="19s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="700" cy="100" r="3" fill="#FF2D55" class="solid-accent4" opacity="0.6">
+      <animate attributeName="cx" values="700;710;695;705;700" dur="16s" repeatCount="indefinite" />
+      <animate attributeName="cy" values="100;95;105;98;100" dur="13s" repeatCount="indefinite" />
+    </circle>
+  </g>
+</svg>
