@@ -3,7 +3,7 @@
     // COLOR PALETTE CONTROLLER
     // Change this variable to select a color palette (1-5)
     // Use negative numbers (-1 to -5) for dark mode with the same palette colors
-    let colorPalette = 2;
+    let colorPalette = 1;
     
     // Color palette definitions
     const palettes = {
