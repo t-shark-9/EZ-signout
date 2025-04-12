@@ -413,31 +413,12 @@
     }
     
     // Function to change the background palette
-    function changeBackgroundPalette(paletteNumber) {
-      const iframe = document.getElementById('backgroundFrame');
-      
-      if (iframe.contentDocument && iframe.contentDocument.defaultView) {
-        // If iframe is already loaded
-        iframe.contentDocument.defaultView.colorPalette = paletteNumber;
-        iframe.contentDocument.defaultView.initColors();
-      } else {
-        // If iframe is still loading
-        iframe.onload = function() {
-          iframe.contentDocument.defaultView.colorPalette = paletteNumber;
-          iframe.contentDocument.defaultView.initColors();
-        };
-      }
-    }
+  
     
     // Initialize on page load
     document.addEventListener("DOMContentLoaded", function() {
       init();
-      
-      // Set the color palette to 2 (Purple-Pink theme)
-      // Wait a bit to make sure the iframe is loaded
-      setTimeout(function() {
-        changeBackgroundPalette(2);
-      }, 500);
+    
     });
   </script>
 </body>
