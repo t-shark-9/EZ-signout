@@ -708,6 +708,11 @@
         <div id="sign-out-main-options">
           <button id="sign-out-now" class="primary-button">Sign Out Now</button>
           <button id="sign-out-later" class="secondary-button">Schedule Sign Out</button>
+          
+          <div style="margin-top: 16px;">
+            <label for="sign-out-now-comment">Comment (optional):</label>
+            <input type="text" id="sign-out-now-comment" placeholder="...">
+          </div>
         </div>
         
         <!-- Sign Out Now Options -->
@@ -738,6 +743,11 @@
             <button id="sign-out-later-today" class="primary-button">Sign Out for That Day</button>
             <button id="sign-out-later-until-week" class="secondary-button">Sign Out Until End of Week</button>
             <button id="sign-out-later-every-week">Every Week</button>
+
+            <div style="margin-top: 16px;">
+              <label for="sign-out-later-comment">Comment (optional):</label>
+              <input type="text" id="sign-out-later-comment" placeholder="Add a reason for signing out">
+            </div>
           </div>
         </div>
       </div>
@@ -962,10 +972,16 @@
           if (record.isRecurring) {
             durationText += " (Weekly)";
           }
-          
-          textSpan.textContent = `Signed out at ${formatTime(record.date)}${durationText}${status}`;
+
+          let commentText = "";
+          if (record.comment) {
+  commentText = ` - Comment: "${record.comment}"`;
+}
+
+textSpan.textContent = `Signed out at ${formatTime(record.date)}${durationText}${status}${commentText}`;
           li.appendChild(textSpan);
-          
+         
+
           // Add cancel button
           const cancelBtn = document.createElement("button");
           cancelBtn.textContent = "Cancel";
@@ -1211,48 +1227,51 @@
     }
     
     // Sign out the user
-    function signOut(startDate, endDate = null, isRecurring = false) {
-      const record = {
-        user: userData.currentUser,
-        date: startDate,
-        endDate: endDate,
-        signedBackIn: false,
-        isRecurring: isRecurring
-      };
+    // Sign out the user
+function signOut(startDate, endDate = null, isRecurring = false, comment = "") {
+  const record = {
+    user: userData.currentUser,
+    date: startDate,
+    endDate: endDate,
+    signedBackIn: false,
+    isRecurring: isRecurring,
+    comment: comment
+  };
+  
+  userData.signOutRecords.push(record);
+  checkUserSignedInStatus();
+  
+  // If recurring, create additional weekly events
+  if (isRecurring) {
+    // Create 10 weekly recurring events
+    for (let i = 1; i <= 10; i++) {
+      const nextDate = new Date(startDate);
+      nextDate.setDate(nextDate.getDate() + (i * 7)); // Add 7 days for each week
       
-      userData.signOutRecords.push(record);
-      checkUserSignedInStatus();
-      
-      // If recurring, create additional weekly events
-      if (isRecurring) {
-        // Create 10 weekly recurring events
-        for (let i = 1; i <= 10; i++) {
-          const nextDate = new Date(startDate);
-          nextDate.setDate(nextDate.getDate() + (i * 7)); // Add 7 days for each week
-          
-          let nextEndDate = null;
-          if (endDate) {
-            nextEndDate = new Date(nextDate);
-            nextEndDate.setHours(endDate.getHours(), endDate.getMinutes(), endDate.getSeconds());
-          }
-          
-          const recurringRecord = {
-            user: userData.currentUser,
-            date: nextDate,
-            endDate: nextEndDate,
-            signedBackIn: false,
-            isRecurring: true
-          };
-          
-          userData.signOutRecords.push(recurringRecord);
-        }
+      let nextEndDate = null;
+      if (endDate) {
+        nextEndDate = new Date(nextDate);
+        nextEndDate.setHours(endDate.getHours(), endDate.getMinutes(), endDate.getSeconds());
       }
       
-      updateCalendars();
-      saveData();
+      const recurringRecord = {
+        user: userData.currentUser,
+        date: nextDate,
+        endDate: nextEndDate,
+        signedBackIn: false,
+        isRecurring: true,
+        comment: comment
+      };
       
-      alert(`You have been signed out successfully.${isRecurring ? ' This sign-out will repeat weekly.' : ''}`);
+      userData.signOutRecords.push(recurringRecord);
     }
+  }
+  
+  updateCalendars();
+  saveData();
+  
+  alert(`You have been signed out successfully.${isRecurring ? ' This sign-out will repeat weekly.' : ''}`);
+}
     
     // Sign the user back in
     function signBackIn() {
@@ -1448,7 +1467,14 @@
                 endDateText += " (Weekly)";
               }
               
-              textSpan.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}${endDateText}`;
+              
+
+              let commentText = "";
+if (record.comment) {
+  commentText = ` - Comment: "${record.comment}"`;
+}
+textSpan.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}${endDateText}${commentText}`;
+
               
               if (record.signedBackIn) {
                 textSpan.textContent += " (Signed back in)";
@@ -1593,7 +1619,8 @@
       document.getElementById("sign-out-for-today").addEventListener("click", function() {
         const now = new Date();
         const endOfDay = getEndOfDay(now);
-        signOut(now, endOfDay);
+        const comment = document.getElementById("sign-out-now-comment").value.trim();
+        signOut(now, endOfDay, false, comment);
         returnToStudentMainMenu();
       });
       
@@ -1601,7 +1628,8 @@
       document.getElementById("sign-out-until-week").addEventListener("click", function() {
         const now = new Date();
         const endOfWeek = getEndOfWeek(now);
-        signOut(now, endOfWeek);
+        const comment = document.getElementById("sign-out-now-comment").value.trim();
+        signOut(now, endOfWeek, false, comment);
         returnToStudentMainMenu();
       });
       
@@ -1609,6 +1637,8 @@
       document.getElementById("confirm-later-sign-out").addEventListener("click", function() {
         const dateInput = document.getElementById("sign-out-date").value;
         const timeInput = document.getElementById("sign-out-time").value;
+        const comment = document.getElementById("sign-out-later-comment").value.trim();
+    
         
         if (dateInput && timeInput) {
           document.getElementById("sign-out-later-duration").classList.remove("hidden");
@@ -1621,12 +1651,13 @@
       document.getElementById("sign-out-later-today").addEventListener("click", function() {
         const dateInput = document.getElementById("sign-out-date").value;
         const timeInput = document.getElementById("sign-out-time").value;
+        const comment = document.getElementById("sign-out-later-comment").value.trim();
         
         if (dateInput && timeInput) {
           const signOutDate = new Date(`${dateInput}T${timeInput}`);
           const endOfDay = getEndOfDay(signOutDate);
           
-          signOut(signOutDate, endOfDay);
+          signOut(signOutDate, endOfDay, false, comment);
           returnToStudentMainMenu();
         } else {
           alert("Please select both date and time.");
@@ -1637,12 +1668,13 @@
       document.getElementById("sign-out-later-until-week").addEventListener("click", function() {
         const dateInput = document.getElementById("sign-out-date").value;
         const timeInput = document.getElementById("sign-out-time").value;
+        const comment = document.getElementById("sign-out-later-comment").value.trim();
         
         if (dateInput && timeInput) {
           const signOutDate = new Date(`${dateInput}T${timeInput}`);
           const endOfWeek = getEndOfWeek(signOutDate);
           
-          signOut(signOutDate, endOfWeek);
+          signOut(signOutDate, endOfWeek, false, comment);
           returnToStudentMainMenu();
         } else {
           alert("Please select both date and time.");
@@ -1653,13 +1685,14 @@
       document.getElementById("sign-out-later-every-week").addEventListener("click", function() {
         const dateInput = document.getElementById("sign-out-date").value;
         const timeInput = document.getElementById("sign-out-time").value;
+        const comment = document.getElementById("sign-out-later-comment").value.trim();
         
         if (dateInput && timeInput) {
           const signOutDate = new Date(`${dateInput}T${timeInput}`);
           const endOfDay = getEndOfDay(signOutDate);
           
           // Add recurring flag
-          signOut(signOutDate, endOfDay, true);
+          signOut(signOutDate, endOfDay, true, comment);
           returnToStudentMainMenu();
         } else {
           alert("Please select both date and time.");
