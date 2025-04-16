@@ -933,18 +933,19 @@
     
     // Handle login
     function login() {
-      const nameInput = document.getElementById("name-input").value.trim();
-      if (nameInput) {
-        userData.currentUser = nameInput;
-        document.getElementById("user-name").textContent = nameInput;
-        
-        checkUserSignedInStatus();
-        showTeacherSignout();
-        saveData();
-      } else {
-        alert("Please enter your name to continue.");
-      }
-    }
+  const nameInput = document.getElementById("name-input").value.trim();
+  if (nameInput) {
+    userData.currentUser = nameInput;
+    userData.role = "Teacher"; // Add this line to track role
+    document.getElementById("user-name").textContent = nameInput;
+    
+    checkUserSignedInStatus();
+    showTeacherSignout();
+    saveData();
+  } else {
+    alert("Please enter your name to continue.");
+  }
+}
     
     // Show teacher signout after login
     function showTeacherSignout() {
@@ -1273,14 +1274,15 @@
     
     // Sign out the user
     // Sign out the user
-function signOut(startDate, endDate = null, isRecurring = false, comment = "") {
+    function signOut(startDate, endDate = null, isRecurring = false, comment = "") {
   const record = {
     user: userData.currentUser,
     date: startDate,
     endDate: endDate,
     signedBackIn: false,
     isRecurring: isRecurring,
-    comment: comment
+    comment: comment,
+    role: "Teacher" // Add this line to mark as teacher
   };
   
   userData.signOutRecords.push(record);

@@ -538,13 +538,13 @@ aria-hidden="true"
     
     signOutRecords.forEach((record, index) => {
       const li = document.createElement("li");
-      
-      // Check if this user is in the availableUsers list as a teacher
-      const userInfo = availableUsers.find(user => user.name === record.user);
-      const isTeacher = userInfo ? userInfo.role === "Teacher" : record.role === "Teacher";
-      
+// Check if this user is in the availableUsers list as a teacher
+const userInfo = availableUsers.find(user => user.name === record.user);
+const isTeacher = userInfo ? userInfo.role === "Teacher" : record.role === "Teacher";
+// Apply the appropriate class
+li.className = isTeacher ? "sign-out teacher-sign-out" : "sign-out";
       // Apply the appropriate class
-      li.className = isTeacher ? "sign-out teacher-sign-out" : "sign-out";
+
       
       let endDateText = "";
       if (record.endDate) {

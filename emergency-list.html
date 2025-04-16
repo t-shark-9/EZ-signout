@@ -637,16 +637,15 @@
       let totalAbsent = 0;
 
       userData.signOutRecords.forEach(record => {
-    if (!availableUsers.some(user => user.name === record.user)) {
-      // If the user has a role in the record, use that
-      // Otherwise default to student (12k)
-      const role = record.role || "12k";
-      availableUsers.push({
-        name: record.user,
-        role: role
-      });
-    }
-  });
+  if (!availableUsers.some(user => user.name === record.user)) {
+    // Use the role from the record if available, otherwise default to "12k"
+    const role = record.role || "12k";
+    availableUsers.push({
+      name: record.user,
+      role: role
+    });
+  }
+});
       
       // Process teachers - all teachers from availableUsers array will be shown
       const teachers = availableUsers

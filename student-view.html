@@ -888,18 +888,19 @@
     
     // Handle login
     function login() {
-      const nameInput = document.getElementById("name-input").value.trim();
-      if (nameInput) {
-        userData.currentUser = nameInput;
-        document.getElementById("user-name").textContent = nameInput;
-        
-        checkUserSignedInStatus();
-        showStudentView();
-        saveData();
-      } else {
-        alert("Please enter your name to continue.");
-      }
-    }
+  const nameInput = document.getElementById("name-input").value.trim();
+  if (nameInput) {
+    userData.currentUser = nameInput;
+    userData.role = "12k"; // Add this line to track role
+    document.getElementById("user-name").textContent = nameInput;
+    
+    checkUserSignedInStatus();
+    showStudentView();
+    saveData();
+  } else {
+    alert("Please enter your name to continue.");
+  }
+}
     
     // Show student view after login
     function showStudentView() {
@@ -1235,7 +1236,8 @@ function signOut(startDate, endDate = null, isRecurring = false, comment = "") {
     endDate: endDate,
     signedBackIn: false,
     isRecurring: isRecurring,
-    comment: comment
+    comment: comment,
+    role: "12k" // Add this line to mark as student
   };
   
   userData.signOutRecords.push(record);
