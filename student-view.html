@@ -746,7 +746,7 @@
 
             <div style="margin-top: 16px;">
               <label for="sign-out-later-comment">Comment (optional):</label>
-              <input type="text" id="sign-out-later-comment" placeholder="Add a reason for signing out">
+              <input type="text" id="sign-out-later-comment" placeholder="...">
             </div>
           </div>
         </div>
@@ -1227,7 +1227,7 @@ textSpan.textContent = `Signed out at ${formatTime(record.date)}${durationText}$
     }
     
     // Sign out the user
-    // Sign out the user
+// Sign out the user
 function signOut(startDate, endDate = null, isRecurring = false, comment = "") {
   const record = {
     user: userData.currentUser,

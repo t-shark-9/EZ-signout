@@ -29,20 +29,21 @@
     @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
     
     :root {
-      --primary-color: #0071e3; /* Apple blue */
-      --secondary-color: #34c759; /* Apple green */
-      --text-color: #1d1d1f; /* Apple dark gray */
-      --secondary-text-color: #86868b; /* Apple medium gray */
-      --background-color: #ffffff;
-      --background-secondary: #f5f5f7; /* Apple light gray */
-      --border-color: #d2d2d7;
-      --signout-color: #ff3b30; /* Apple red */
-      --signin-color: #34c759; /* Apple green */
-      --border-radius: 12px;
-      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-      --button-radius: 20px;
-      --animation-duration: 0.3s;
-    }
+  --primary-color: #0071e3; /* Apple blue */
+  --secondary-color: #34c759; /* Apple green */
+  --text-color: #1d1d1f; /* Apple dark gray */
+  --secondary-text-color: #86868b; /* Apple medium gray */
+  --background-color: #ffffff;
+  --background-secondary: #f5f5f7; /* Apple light gray */
+  --border-color: #d2d2d7;
+  --signout-color: #ff3b30; /* Apple red */
+  --signin-color: #34c759; /* Apple green */
+  --teacher-signout-color: #af52de; /* Apple purple */
+  --border-radius: 12px;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --button-radius: 20px;
+  --animation-duration: 0.3s;
+}
     
     * {
       margin: 0;
@@ -266,7 +267,9 @@
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
     }
-    
+    #sign-out-list li.teacher-sign-out {
+  border-left: 4px solid var(--teacher-signout-color);
+}
     .calendar-day.today {
       background-color: #e4f5fe;
       border-color: var(--primary-color);
@@ -506,73 +509,94 @@ aria-hidden="true"
     // Update the calendar view
     function updateCalendar() {
       const signOutList = document.getElementById("sign-out-list");
-      const signInList = document.getElementById("sign-in-list");
+  const signInList = document.getElementById("sign-in-list");
+  
+  // Clear previous entries
+  signOutList.innerHTML = "";
+  signInList.innerHTML = "";
+  
+  // Get the availableUsers list from the window object or define it if not available
+  const availableUsers = window.availableUsers || [
+    // Teachers
+    { name: "Ms. King", role: "Teacher" },
+    { name: "Mr. Jones", role: "Teacher" },
+    { name: "Mr. Thompson", role: "Teacher" },
+    // ... other default teachers if needed
+  ];
+  
+  // Filter records for the selected date
+  const calendarDateStr = getDateString(calendarDate);
+  
+  // Add sign-out records
+  const signOutRecords = userData.signOutRecords.filter(record => {
+    const recordDateStr = getDateString(record.date);
+    return recordDateStr === calendarDateStr;
+  });
+  
+  if (signOutRecords.length > 0) {
+    signOutRecords.sort((a, b) => b.date - a.date); // Sort by date descending
+    
+    signOutRecords.forEach((record, index) => {
+      const li = document.createElement("li");
       
-      // Clear previous entries
-      signOutList.innerHTML = "";
-      signInList.innerHTML = "";
+      // Check if this user is in the availableUsers list as a teacher
+      const userInfo = availableUsers.find(user => user.name === record.user);
+      const isTeacher = userInfo ? userInfo.role === "Teacher" : record.role === "Teacher";
       
-      // Filter records for the selected date
-      const calendarDateStr = getDateString(calendarDate);
+      // Apply the appropriate class
+      li.className = isTeacher ? "sign-out teacher-sign-out" : "sign-out";
       
-      // Add sign-out records
-      const signOutRecords = userData.signOutRecords.filter(record => {
-        const recordDateStr = getDateString(record.date);
-        return recordDateStr === calendarDateStr;
-      });
-      
-      if (signOutRecords.length > 0) {
-        signOutRecords.sort((a, b) => b.date - a.date); // Sort by date descending
-        
-        signOutRecords.forEach((record, index) => {
-          const li = document.createElement("li");
-          li.className = "sign-out";
-          
-          let endDateText = "";
-          if (record.endDate) {
-            if (getDateString(record.endDate) === calendarDateStr) {
-              endDateText = " until end of day";
-            } else {
-              endDateText = ` until ${formatDate(record.endDate)}`;
-            }
-          }
-          
-          if (record.isRecurring) {
-            endDateText += " (Weekly)";
-          }
-          
-          const status = record.signedBackIn ? " (Signed back in)" : "";
-          
-          li.textContent = `${record.user} signed out at ${formatTime(record.date)}${endDateText}${status}`;
-          signOutList.appendChild(li);
-        });
-      } else {
-        const li = document.createElement("li");
-        li.textContent = "No sign-out records for this day.";
-        signOutList.appendChild(li);
+      let endDateText = "";
+      if (record.endDate) {
+        if (getDateString(record.endDate) === calendarDateStr) {
+          endDateText = " until end of day";
+        } else {
+          endDateText = ` until ${formatDate(record.endDate)}`;
+        }
       }
       
-      // Add sign-in records
-      const signInRecords = userData.signInRecords.filter(record => {
-        const recordDateStr = getDateString(record.date);
-        return recordDateStr === calendarDateStr;
-      });
-      
-      if (signInRecords.length > 0) {
-        signInRecords.sort((a, b) => b.date - a.date); // Sort by date descending
-        
-        signInRecords.forEach(record => {
-          const li = document.createElement("li");
-          li.className = "sign-in";
-          li.textContent = `${record.user} signed back in at ${formatTime(record.date)}`;
-          signInList.appendChild(li);
-        });
-      } else {
-        const li = document.createElement("li");
-        li.textContent = "No sign-in records for this day.";
-        signInList.appendChild(li);
+      if (record.isRecurring) {
+        endDateText += " (Weekly)";
       }
-    }
+      
+      const status = record.signedBackIn ? " (Signed back in)" : "";
+
+      let commentText = "";
+      if (record.comment) {
+        commentText = ` - Comment: "${record.comment}"`;
+      }
+          
+      li.textContent = `${record.user} signed out at ${formatTime(record.date)}${endDateText}${status}${commentText}`;
+      signOutList.appendChild(li);
+    });
+  } else {
+    const li = document.createElement("li");
+    li.textContent = "No sign-out records for this day.";
+    signOutList.appendChild(li);
+  }
+  // Add sign-in records
+  const signInRecords = userData.signInRecords.filter(record => {
+    const recordDateStr = getDateString(record.date);
+    return recordDateStr === calendarDateStr;
+  });
+  
+  if (signInRecords.length > 0) {
+    signInRecords.sort((a, b) => b.date - a.date); // Sort by date descending
+    
+    signInRecords.forEach(record => {
+      const li = document.createElement("li");
+      li.className = "sign-in";
+      li.textContent = `${record.user} signed back in at ${formatTime(record.date)}`;
+      signInList.appendChild(li);
+    });
+  } else {
+    const li = document.createElement("li");
+    li.textContent = "No sign-in records for this day.";
+    signInList.appendChild(li);
+  }
+}
+
+
     
     // Set calendar view (daily or monthly)
     function setView(view) {

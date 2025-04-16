@@ -532,6 +532,7 @@
     
     // Update timestamp
     function updateTimestamp() {
+      
       const now = new Date();
       document.getElementById('update-time').textContent = now.toLocaleString();
     }
@@ -634,6 +635,18 @@
       let totalPeople = 0;
       let totalPresent = 0;
       let totalAbsent = 0;
+
+      userData.signOutRecords.forEach(record => {
+    if (!availableUsers.some(user => user.name === record.user)) {
+      // If the user has a role in the record, use that
+      // Otherwise default to student (12k)
+      const role = record.role || "12k";
+      availableUsers.push({
+        name: record.user,
+        role: role
+      });
+    }
+  });
       
       // Process teachers - all teachers from availableUsers array will be shown
       const teachers = availableUsers
