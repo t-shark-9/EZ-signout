@@ -257,12 +257,16 @@
           <div class="stat-value" id="total-signouts">0</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Currently Signed Out</div>
-          <div class="stat-value" id="current-signouts">0</div>
+          <div class="stat-label">Teachers Currently Out</div>
+          <div class="stat-value" id="teachers-currently-out">0</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Total Students</div>
+          <div class="stat-label">Registered Students</div>
           <div class="stat-value" id="total-students">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Students Currently Out</div>
+          <div class="stat-value" id="students-currently-out">0</div>
         </div>
       </div>
       
@@ -367,19 +371,67 @@
         !record.signedBackIn
       ).length;
       
-      // Calculate total unique students
-      const uniqueStudents = new Set();
-      userData.signOutRecords.forEach(record => {
-        uniqueStudents.add(record.user);
-      });
-      userData.signInRecords.forEach(record => {
-        uniqueStudents.add(record.user);
-      });
+    
+      
+      // Define the availableUsers list if not already defined
+      const availableUsers = window.availableUsers || [
+        // Students
+        { name: "Tjark Osterloh", role: "12k" },
+        { name: "Cecilia Lesko", role: "12k" },
+        { name: "Sarah Van der Werff", role: "12k" },
+        { name: "Luca Van der Vennet", role: "12k" },
+        { name: "Folke Roording", role: "12k" },
+        { name: "Manya Manikandan", role: "12k" },
+        { name: "Aditi Prahalad", role: "12k" },
+        { name: "Teuen Biesterbos", role: "12k" },
+        { name: "Aurelius Pizka", role: "12k" },
+        { name: "Ebba Löfgren", role: "12k" },
+        { name: "Nell Jones", role: "12k" },
+        { name: "Gustaf Ohlin", role: "12k" },
+        { name: "Alexander Gunn", role: "12k" },
+        { name: "Kevin Tae", role: "12k" },
+        { name: "Elsa Egevad", role: "12k" },
+        { name: "Evelyn Batiste", role: "12k" },
+        { name: "Aanila Khan", role: "12k" },
+        { name: "Pia Forno", role: "12k" },
+        { name: "Wiliam Duncan", role: "12k" },
+        { name: "Andres Stell", role: "12k" },
+        { name: "Ellen Embling", role: "12k" },
+        { name: "Viktoriia Smoliar", role: "12k" },
+        { name: "Flora Bennett", role: "12k" },
+        
+        // Teachers
+        { name: "Ms. King", role: "Teacher" },
+        { name: "Mr. Jones", role: "Teacher" },
+        { name: "Mr. Thompson", role: "Teacher" },
+        { name: "Mr. Wise", role: "Teacher" },
+        { name: "Mr. Lee", role: "Teacher" },
+        { name: "Mr. Smith", role: "Teacher" },
+        { name: "Mr. Crozier", role: "Teacher" },
+        { name: "Mr. Hennigan", role: "Teacher" },
+        { name: "Ms. Harris", role: "Teacher" },
+        { name: "Mr. King", role: "Teacher" },
+        { name: "Mr. Lingard", role: "Teacher" },
+        { name: "Ms. Emslie", role: "Teacher" },
+        { name: "Mr. Gardiner", role: "Teacher" },
+        { name: "Mr. Berry", role: "Teacher" },
+        { name: "Ms. Ward", role: "Teacher" }
+      ];
+      
+      // Count students (not teachers) from the available users list
+      const totalStudents = availableUsers.filter(user => user.role === "12k").length;
+      
+      // Calculate students currently signed out
+      const studentsCurrentlyOut = userData.signOutRecords.filter(record => {
+        const isStudent = availableUsers.find(user => user.name === record.user)?.role === "12k" || record.role === "12k";
+        return isStudent && record.date <= now && (!record.endDate || record.endDate >= now) && !record.signedBackIn;
+      }).length;
       
       // Update the DOM
       document.getElementById("total-signouts").textContent = todaySignOuts;
-      document.getElementById("current-signouts").textContent = currentlySignedOut;
-      document.getElementById("total-students").textContent = uniqueStudents.size;
+      document.getElementById("teachers-currently-out").textContent = currentlySignedOut - studentsCurrentlyOut;
+      document.getElementById("total-students").textContent = totalStudents;
+      document.getElementById("students-currently-out").textContent = studentsCurrentlyOut;
     }
     
     // Set up real-time updates

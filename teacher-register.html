@@ -291,6 +291,28 @@
       background-color: var(--signout-color);
     }
     
+    .calendar-day .event-dots {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.calendar-day .event-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--signout-color);
+}
+
+/* Teacher dots */
+.calendar-day .event-dot.teacher {
+  background-color: var(--teacher-signout-color);
+}
     .day-number {
       text-align: right;
       font-size: 14px;
@@ -700,24 +722,56 @@ li.className = isTeacher ? "sign-out teacher-sign-out" : "sign-out";
         }
         
         // Check if there are events on this day
-        const hasEvents = userData.signOutRecords.some(record => {
-          // Check if record date matches currentDate
-          const recordDateStr = getDateString(record.date);
-          if (recordDateStr === dateStr) return true;
-          
-          // Check if record span includes currentDate
-          if (record.endDate) {
-            return record.date <= currentDate && record.endDate >= currentDate;
-          }
-          
-          return false;
-        });
-        
-        if (hasEvents) {
-          dayCell.classList.add("has-events");
-        }
-        
-        dayCell.innerHTML = `<div class="day-number">${i}</div>`;
+        const events = userData.signOutRecords.filter(record => {
+  // Check if record date matches currentDate
+  const recordDateStr = getDateString(record.date);
+  if (recordDateStr === dateStr) return true;
+  
+  // Check if record span includes currentDate
+  if (record.endDate) {
+    return record.date <= currentDate && record.endDate >= currentDate;
+  }
+  
+  return false;
+});
+
+if (events.length > 0) {
+  // Get the availableUsers list from the window object or define it if not available
+  const availableUsers = window.availableUsers || [
+    // Teachers
+    { name: "Ms. King", role: "Teacher" },
+    { name: "Mr. Jones", role: "Teacher" },
+    { name: "Mr. Thompson", role: "Teacher" }
+  ];
+  
+  // Create container for dots
+  const dotsContainer = document.createElement("div");
+  dotsContainer.className = "event-dots";
+  
+  // Limit to 10 dots
+  const maxDots = Math.min(events.length, 10);
+  
+  // Add a dot for each event (up to max)
+  for (let j = 0; j < maxDots; j++) {
+    const dot = document.createElement("div");
+    
+    // Check if this user is a teacher
+    const record = events[j];
+    const userInfo = availableUsers.find(user => user.name === record.user);
+    const isTeacher = userInfo ? userInfo.role === "Teacher" : record.role === "Teacher";
+    
+    // Apply appropriate class
+    dot.className = isTeacher ? "event-dot teacher" : "event-dot";
+    
+    dotsContainer.appendChild(dot);
+  }
+  
+  dayCell.appendChild(dotsContainer);
+}
+const dayNumber = document.createElement("div");
+dayNumber.className = "day-number";
+dayNumber.textContent = i;
+dayCell.insertBefore(dayNumber, dayCell.firstChild);
         
         // Add click event
         dayCell.addEventListener("click", () => {
