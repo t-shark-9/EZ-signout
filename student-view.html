@@ -626,7 +626,8 @@
       <h1>EZ Sign-Out</h1>
       <div id="login-form">
         <h2>Enter your name to continue</h2>
-        <input type="text" id="name-input" placeholder="Your name" autocomplete="name">
+        <input type="text" id="name-input" placeholder="Your name" autocomplete="off" list="user-suggestions">
+<datalist id="user-suggestions"></datalist>
         <button class="primary-button" onclick="login()">Continue</button>
       </div>
     </div>
@@ -1407,15 +1408,116 @@ function signOut(startDate, endDate = null, isRecurring = false, comment = "") {
           }
         });
     }
+    if (typeof availableUsers === 'undefined') {
+  window.availableUsers = [
+    // Students
+    { name: "Tjark Osterloh", role: "12k" },
+    { name: "Cecilia Lesko", role: "12k" },
+    { name: "Sarah Van der Werff", role: "12k" },
+    { name: "Luca Van der Vennet", role: "12k" },
+    { name: "Folke Roording", role: "12k" },
+    { name: "Manya Manikandan", role: "12k" },
+    { name: "Aditi Prahalad", role: "12k" },
+    { name: "Teuen Biesterbos", role: "12k" },
+    { name: "Aurelius Pizka", role: "12k" },
+    { name: "Ebba Löfgren", role: "12k" },
+    { name: "Nell Jones", role: "12k" },
+    { name: "Gustaf Ohlin", role: "12k" },
+    { name: "Alexander Gunn", role: "12k" },
+    { name: "Kevin Tae", role: "12k" },
+    { name: "Elsa Egevad", role: "12k" },
+    { name: "Evelyn Batiste", role: "12k" },
+    { name: "Aanila Khan", role: "12k" },
+    { name: "Pia Forno", role: "12k" },
+    { name: "Wiliam Duncan", role: "12k" },
+    { name: "Andres Stell", role: "12k" },
+    { name: "Ellen Embling", role: "12k" },
+    { name: "Viktoriia Smoliar", role: "12k" },
+    { name: "Flora Bennett", role: "12k" },
     
+    // Teachers
+    { name: "Ms. King", role: "Teacher" },
+    { name: "Mr. Jones", role: "Teacher" },
+    { name: "Mr. Thompson", role: "Teacher" },
+    { name: "Mr. Wise", role: "Teacher" },
+    { name: "Mr. Lee", role: "Teacher" },
+    { name: "Mr. Smith", role: "Teacher" },
+    { name: "Mr. Crozier", role: "Teacher" },
+    { name: "Mr. Hennigan", role: "Teacher" },
+    { name: "Ms. Harris", role: "Teacher" },
+    { name: "Mr. King", role: "Teacher" },
+    { name: "Mr. Lingard", role: "Teacher" },
+    { name: "Ms. Emslie", role: "Teacher" },
+    { name: "Mr. Gardiner", role: "Teacher" },
+    { name: "Mr. Berry", role: "Teacher" },
+    { name: "Ms. Ward", role: "Teacher" }
+  ];
+}
     
+    async function loadUserSuggestions() {
+  try {
+    // Load data from Firestore
+    const docRef = db.collection('signOutApp').doc('userData');
+    const doc = await docRef.get();
+    
+    // Set of unique user names
+    const userSet = new Set();
+    
+    if (doc.exists) {
+      const data = doc.data();
+      
+      // Get users from sign out records
+      if (data.signOutRecords && Array.isArray(data.signOutRecords)) {
+        data.signOutRecords.forEach(record => {
+          if (record.user) {
+            userSet.add(record.user);
+          }
+        });
+      }
+      
+      // Get users from sign in records
+      if (data.signInRecords && Array.isArray(data.signInRecords)) {
+        data.signInRecords.forEach(record => {
+          if (record.user) {
+            userSet.add(record.user);
+          }
+        });
+      }
+    }
+    
+    // Add emergency list users (if defined)
+    if (typeof availableUsers !== 'undefined' && Array.isArray(availableUsers)) {
+      availableUsers.forEach(user => {
+        if (user.role === "12k") { // Only add students to student view
+          userSet.add(user.name);
+        }
+      });
+    }
+    
+    // Sort the users alphabetically
+    const sortedUsers = Array.from(userSet).sort();
+    
+    // Clear and populate the datalist
+    const datalist = document.getElementById('user-suggestions');
+    datalist.innerHTML = '';
+    
+    sortedUsers.forEach(user => {
+      const option = document.createElement('option');
+      option.value = user;
+      datalist.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error loading user suggestions:", error);
+  }
+}
     
     // Event Listeners
     document.addEventListener("DOMContentLoaded", function() {
       // Initialize the app
       init();
       setupRealtimeUpdates();
-
+  // Load user suggestions for the datalist
+  loadUserSuggestions();
       // Set the color palette to 3 (Orange-Red theme for student view)
      
       // Return to menu button click
@@ -1707,6 +1809,7 @@ textSpan.textContent = `${formatDate(record.date)} at ${formatTime(record.date)}
           login();
         }
       });
+      
     });
   </script>
 </body>
